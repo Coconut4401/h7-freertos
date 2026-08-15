@@ -340,7 +340,7 @@
               <MiscControls></MiscControls>
               <Define>STM32H743xx</Define>
               <Undefine></Undefine>
-              <IncludePath>..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include;..\..\Drivers\CMSIS\Include;..\..\Drivers;..\..\Middlewares;..\..\User;..\..\Middlewares\FreeRTOS-Kernel-main\include;..\..\Middlewares\FreeRTOS-Kernel-main\portable\GCC\ARM_CM7\r0p1;..\..\User</IncludePath>
+              <IncludePath>..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include;..\..\Drivers\CMSIS\Include;..\..\Drivers;..\..\Middlewares;..\..\Middlewares\FatFs;..\..\User;..\..\App;..\..\Middlewares\FreeRTOS-Kernel-main\include;..\..\Middlewares\FreeRTOS-Kernel-main\portable\GCC\ARM_CM7\r0p1;..\..\User</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -403,6 +403,81 @@
               <FileName>FreeRTOSConfig.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\..\User\FreeRTOSConfig.h</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>App</GroupName>
+          <Files>
+            <File>
+              <FileName>app_input.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\App\app_input.c</FilePath>
+            </File>
+            <File>
+              <FileName>app_input.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\App\app_input.h</FilePath>
+            </File>
+            <File>
+              <FileName>app_ui.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\App\app_ui.c</FilePath>
+            </File>
+            <File>
+              <FileName>app_ui.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\App\app_ui.h</FilePath>
+            </File>
+            <File>
+              <FileName>app_runtime.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\App\app_runtime.c</FilePath>
+            </File>
+            <File>
+              <FileName>app_runtime.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\App\app_runtime.h</FilePath>
+            </File>
+            <File>
+              <FileName>app_monitor.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\App\app_monitor.c</FilePath>
+            </File>
+            <File>
+              <FileName>app_monitor.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\App\app_monitor.h</FilePath>
+            </File>
+            <File>
+              <FileName>app_storage.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\App\app_storage.c</FilePath>
+            </File>
+            <File>
+              <FileName>app_storage.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\App\app_storage.h</FilePath>
+            </File>
+            <File>
+              <FileName>app_files.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\App\app_files.c</FilePath>
+            </File>
+            <File>
+              <FileName>app_files.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\App\app_files.h</FilePath>
+            </File>
+            <File>
+              <FileName>app_draw.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\App\app_draw.c</FilePath>
+            </File>
+            <File>
+              <FileName>app_draw.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\App\app_draw.h</FilePath>
             </File>
           </Files>
         </Group>
@@ -488,6 +563,51 @@
               <FileName>touch.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\Drivers\BSP\TOUCH\touch.c</FilePath>
+            </File>
+            <File>
+              <FileName>sdmmc_sdcard.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\Drivers\BSP\SDMMC\sdmmc_sdcard.c</FilePath>
+            </File>
+            <File>
+              <FileName>sdmmc_sdcard.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\Drivers\BSP\SDMMC\sdmmc_sdcard.h</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>FatFs</GroupName>
+          <Files>
+            <File>
+              <FileName>ff.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\Middlewares\FatFs\ff.c</FilePath>
+            </File>
+            <File>
+              <FileName>diskio.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\Middlewares\FatFs\diskio.c</FilePath>
+            </File>
+            <File>
+              <FileName>ff.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\Middlewares\FatFs\ff.h</FilePath>
+            </File>
+            <File>
+              <FileName>ffconf.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\Middlewares\FatFs\ffconf.h</FilePath>
+            </File>
+            <File>
+              <FileName>diskio.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\Middlewares\FatFs\diskio.h</FilePath>
+            </File>
+            <File>
+              <FileName>integer.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\Middlewares\FatFs\integer.h</FilePath>
             </File>
           </Files>
         </Group>
