@@ -5,6 +5,7 @@
 #include "app_draw.h"
 #include "app_files.h"
 #include "app_input.h"
+#include "app_logs.h"
 #include "app_monitor.h"
 #include "app_ui.h"
 #include "task.h"
@@ -32,6 +33,33 @@ typedef struct
 } app_runtime_state_t;
 
 static const char g_password[APP_PASSWORD_LENGTH] = {'1', '2', '3', '4'};
+
+static const char *app_runtime_application_name(int8_t application)
+{
+    switch (application)
+    {
+        case APP_UI_APP_FILES:
+            return "FILES OPENED";
+
+        case APP_UI_APP_DRAW:
+            return "DRAW OPENED";
+
+        case APP_UI_APP_MUSIC:
+            return "MUSIC OPENED";
+
+        case APP_UI_APP_LOGS:
+            return "LOGS OPENED";
+
+        case APP_UI_APP_MONITOR:
+            return "MONITOR OPENED";
+
+        case APP_UI_APP_SETTINGS:
+            return "SETTINGS OPENED";
+
+        default:
+            return "UNKNOWN APP OPENED";
+    }
+}
 
 static uint8_t app_runtime_deadline_reached(TickType_t now, TickType_t deadline)
 {
@@ -63,6 +91,7 @@ static void app_runtime_enter_login(app_runtime_state_t *runtime,
 {
     runtime->state = APP_STATE_LOGIN;
     runtime->entered_length = 0U;
+    app_logs_add(APP_LOG_LEVEL_INFO, "AUTH", "LOGIN SCREEN READY");
     app_ui_show_login(context->touch_available);
     app_ui_update_login(0U, runtime->failed_attempts, "ENTER PIN", 0U);
 }
@@ -95,6 +124,8 @@ static void app_runtime_enter_application(app_runtime_state_t *runtime,
     runtime->state = APP_STATE_APPLICATION;
     runtime->active_application = application;
     runtime->last_monitor_update = now;
+    app_logs_add(APP_LOG_LEVEL_INFO, "DESKTOP",
+                 app_runtime_application_name(application));
 
     if (application == APP_UI_APP_FILES)
     {
@@ -103,6 +134,10 @@ static void app_runtime_enter_application(app_runtime_state_t *runtime,
     else if (application == APP_UI_APP_DRAW)
     {
         app_draw_open();
+    }
+    else if (application == APP_UI_APP_LOGS)
+    {
+        app_logs_open();
     }
     else if (application == APP_UI_APP_MONITOR)
     {
@@ -133,6 +168,7 @@ static void app_runtime_submit_pin(app_runtime_state_t *runtime,
 
     if (app_runtime_password_matches(runtime))
     {
+        app_logs_add(APP_LOG_LEVEL_INFO, "AUTH", "LOGIN SUCCESS");
         app_runtime_enter_desktop(runtime, context, now);
         return;
     }
@@ -141,6 +177,7 @@ static void app_runtime_submit_pin(app_runtime_state_t *runtime,
     runtime->failed_attempts++;
     if (runtime->failed_attempts >= APP_MAX_LOGIN_FAILURES)
     {
+        app_logs_add(APP_LOG_LEVEL_ERROR, "AUTH", "LOGIN LOCKED");
         runtime->state = APP_STATE_LOCKED;
         runtime->state_deadline = now + pdMS_TO_TICKS(APP_LOCK_TIME_MS);
         runtime->last_lock_second = APP_LOCK_TIME_MS / 1000U;
@@ -148,6 +185,7 @@ static void app_runtime_submit_pin(app_runtime_state_t *runtime,
     }
     else
     {
+        app_logs_add(APP_LOG_LEVEL_WARNING, "AUTH", "WRONG PASSWORD");
         app_ui_update_login(0U, runtime->failed_attempts,
                             "WRONG PASSWORD", 1U);
     }
@@ -245,6 +283,11 @@ static void app_runtime_handle_application_event(app_runtime_state_t *runtime,
         {
             app_draw_close();
         }
+        else if (runtime->active_application == APP_UI_APP_LOGS)
+        {
+            app_logs_close();
+        }
+        app_logs_add(APP_LOG_LEVEL_INFO, "DESKTOP", "APPLICATION CLOSED");
         runtime->selected_icon = runtime->active_application;
         app_runtime_enter_desktop(runtime, context, now);
         return;
@@ -257,6 +300,10 @@ static void app_runtime_handle_application_event(app_runtime_state_t *runtime,
     else if (runtime->active_application == APP_UI_APP_DRAW)
     {
         app_draw_handle_event(event);
+    }
+    else if (runtime->active_application == APP_UI_APP_LOGS)
+    {
+        app_logs_handle_event(event);
     }
 }
 
@@ -271,6 +318,7 @@ static void app_runtime_update(app_runtime_state_t *runtime,
 
     app_files_update();
     app_draw_update();
+    app_logs_update();
 
     if (runtime->state == APP_STATE_BOOT &&
         app_runtime_deadline_reached(now, runtime->state_deadline))
@@ -334,6 +382,9 @@ void AppRuntimeTask(void *argument)
     runtime.last_monitor_update = 0U;
     runtime.selected_icon = -1;
     runtime.active_application = -1;
+
+    app_logs_init();
+    app_logs_add(APP_LOG_LEVEL_INFO, "SYSTEM", "RUNTIME TASK STARTED");
 
     now = xTaskGetTickCount();
     runtime.state_deadline = now + pdMS_TO_TICKS(APP_BOOT_TIME_MS);

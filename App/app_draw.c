@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "FreeRTOS.h"
+#include "app_logs.h"
 #include "app_storage.h"
 #include "app_ui.h"
 #include "./BSP/LCD/lcd.h"
@@ -172,6 +173,7 @@ static uint8_t app_draw_append_point(uint16_t x,
     if (g_draw.point_count >= APP_DRAW_MAX_POINTS)
     {
         g_draw.drawing = 0U;
+        app_logs_add(APP_LOG_LEVEL_WARNING, "DRAW", "POINT BUFFER FULL");
         app_draw_set_status("POINT BUFFER FULL - SAVE OR CLEAR");
         app_draw_update_controls();
         return 0U;
@@ -432,6 +434,7 @@ void app_draw_update(void)
         }
         if (response.result != APP_STORAGE_RESULT_OK)
         {
+            app_logs_add(APP_LOG_LEVEL_ERROR, "DRAW", "SD OPERATION FAILED");
             app_draw_set_status(app_draw_storage_error(response.result));
             app_draw_update_controls();
             continue;
@@ -439,6 +442,7 @@ void app_draw_update(void)
 
         if (response.operation == APP_STORAGE_OP_WRITE_BINARY)
         {
+            app_logs_add(APP_LOG_LEVEL_INFO, "DRAW", "DRAWING SAVED");
             app_draw_set_status("DRAWING.DRW SAVED TO SD CARD");
             app_draw_update_controls();
         }
@@ -446,6 +450,7 @@ void app_draw_update(void)
         {
             if (!app_draw_document_is_valid(response.data_length))
             {
+                app_logs_add(APP_LOG_LEVEL_ERROR, "DRAW", "DRAW FILE CRC ERROR");
                 app_draw_set_status("INVALID DRAW FILE OR CRC ERROR");
                 app_draw_update_controls();
                 continue;
@@ -454,6 +459,7 @@ void app_draw_update(void)
             payload_length = g_draw.point_count *
                              (uint32_t)sizeof(app_draw_point_t);
             memcpy(g_draw.points, g_io_document.points, payload_length);
+            app_logs_add(APP_LOG_LEVEL_INFO, "DRAW", "DRAWING LOADED");
             app_draw_set_status("DRAWING.DRW LOADED FROM SD CARD");
             app_draw_redraw();
         }

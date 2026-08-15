@@ -7,20 +7,25 @@
 #include "FreeRTOS.h"
 #include "queue.h"
 #include "task.h"
+#include "app_logs.h"
 #include "ff.h"
 #include "./BSP/SDMMC/sdmmc_sdcard.h"
 
 #define STORAGE_REQUEST_QUEUE_LENGTH   4U
 #define STORAGE_RESPONSE_QUEUE_LENGTH  2U
 #define STORAGE_BINARY_QUEUE_LENGTH    2U
+#define STORAGE_LOG_QUEUE_LENGTH       2U
 
 #define STORAGE_BINARY_TEMP_PATH       "0:/~DRAW.TMP"
 #define STORAGE_BINARY_BACKUP_PATH     "0:/~DRAW.BAK"
+#define STORAGE_LOG_TEMP_PATH          "0:/~LOG.TMP"
+#define STORAGE_LOG_BACKUP_PATH        "0:/~LOG.BAK"
 
 static FATFS g_sd_filesystem;
 static QueueHandle_t g_request_queue;
 static QueueHandle_t g_response_queue;
 static QueueHandle_t g_binary_response_queue;
+static QueueHandle_t g_log_response_queue;
 static volatile app_storage_state_t g_storage_state = APP_STORAGE_STATE_STARTING;
 static volatile uint32_t g_capacity_mb;
 
@@ -393,7 +398,9 @@ static void app_storage_delete(const app_storage_request_t *request,
     app_storage_copy_text(response->name, sizeof(response->name), request->name);
 }
 
-static FRESULT app_storage_recover_binary_target(const char *path)
+static FRESULT app_storage_recover_binary_target(const char *path,
+                                                  const char *temporary_path,
+                                                  const char *backup_path)
 {
     FILINFO information;
     FRESULT result;
@@ -408,16 +415,16 @@ static FRESULT app_storage_recover_binary_target(const char *path)
         return result;
     }
 
-    result = f_stat(STORAGE_BINARY_BACKUP_PATH, &information);
+    result = f_stat(backup_path, &information);
     if (result == FR_OK)
     {
-        return f_rename(STORAGE_BINARY_BACKUP_PATH, path);
+        return f_rename(backup_path, path);
     }
 
-    result = f_stat(STORAGE_BINARY_TEMP_PATH, &information);
+    result = f_stat(temporary_path, &information);
     if (result == FR_OK)
     {
-        return f_rename(STORAGE_BINARY_TEMP_PATH, path);
+        return f_rename(temporary_path, path);
     }
     return FR_NO_FILE;
 }
@@ -439,7 +446,9 @@ static void app_storage_read_binary(const app_storage_request_t *request,
     }
 
     app_storage_make_path(path, request->name);
-    result = app_storage_recover_binary_target(path);
+    result = app_storage_recover_binary_target(path,
+                                               STORAGE_BINARY_TEMP_PATH,
+                                               STORAGE_BINARY_BACKUP_PATH);
     if (result != FR_OK)
     {
         response->filesystem_result = (uint8_t)result;
@@ -480,6 +489,8 @@ static void app_storage_write_binary(const app_storage_request_t *request,
     UINT transferred;
     uint8_t had_old_file;
     char path[APP_STORAGE_PATH_LENGTH];
+    const char *temporary_path;
+    const char *backup_path;
 
     if (!app_storage_name_is_valid(request->name) ||
         request->binary_data == NULL || request->binary_length == 0U)
@@ -488,11 +499,22 @@ static void app_storage_write_binary(const app_storage_request_t *request,
         return;
     }
 
-    app_storage_make_path(path, request->name);
-    (void)app_storage_recover_binary_target(path);
-    (void)f_unlink(STORAGE_BINARY_TEMP_PATH);
+    if (request->operation == APP_STORAGE_OP_WRITE_LOG)
+    {
+        temporary_path = STORAGE_LOG_TEMP_PATH;
+        backup_path = STORAGE_LOG_BACKUP_PATH;
+    }
+    else
+    {
+        temporary_path = STORAGE_BINARY_TEMP_PATH;
+        backup_path = STORAGE_BINARY_BACKUP_PATH;
+    }
 
-    result = f_open(&file, STORAGE_BINARY_TEMP_PATH,
+    app_storage_make_path(path, request->name);
+    (void)app_storage_recover_binary_target(path, temporary_path, backup_path);
+    (void)f_unlink(temporary_path);
+
+    result = f_open(&file, temporary_path,
                     FA_CREATE_ALWAYS | FA_WRITE);
     transferred = 0U;
     if (result == FR_OK)
@@ -511,7 +533,7 @@ static void app_storage_write_binary(const app_storage_request_t *request,
     }
     if (result != FR_OK)
     {
-        (void)f_unlink(STORAGE_BINARY_TEMP_PATH);
+        (void)f_unlink(temporary_path);
         response->filesystem_result = (uint8_t)result;
         response->result = app_storage_map_result(result);
         response->data_length = (uint32_t)transferred;
@@ -521,25 +543,25 @@ static void app_storage_write_binary(const app_storage_request_t *request,
     had_old_file = (f_stat(path, &information) == FR_OK) ? 1U : 0U;
     if (had_old_file)
     {
-        (void)f_unlink(STORAGE_BINARY_BACKUP_PATH);
-        result = f_rename(path, STORAGE_BINARY_BACKUP_PATH);
+        (void)f_unlink(backup_path);
+        result = f_rename(path, backup_path);
     }
     if (result == FR_OK)
     {
-        result = f_rename(STORAGE_BINARY_TEMP_PATH, path);
+        result = f_rename(temporary_path, path);
     }
     if (result != FR_OK)
     {
         if (had_old_file)
         {
-            old_result = f_rename(STORAGE_BINARY_BACKUP_PATH, path);
+            old_result = f_rename(backup_path, path);
             (void)old_result;
         }
-        (void)f_unlink(STORAGE_BINARY_TEMP_PATH);
+        (void)f_unlink(temporary_path);
     }
     else if (had_old_file)
     {
-        (void)f_unlink(STORAGE_BINARY_BACKUP_PATH);
+        (void)f_unlink(backup_path);
     }
 
     response->filesystem_result = (uint8_t)result;
@@ -630,8 +652,10 @@ BaseType_t app_storage_init(void)
                                     sizeof(app_storage_response_t));
     g_binary_response_queue = xQueueCreate(STORAGE_BINARY_QUEUE_LENGTH,
                                     sizeof(app_storage_binary_response_t));
+    g_log_response_queue = xQueueCreate(STORAGE_LOG_QUEUE_LENGTH,
+                                    sizeof(app_storage_binary_response_t));
     if (g_request_queue == NULL || g_response_queue == NULL ||
-        g_binary_response_queue == NULL)
+        g_binary_response_queue == NULL || g_log_response_queue == NULL)
     {
         return pdFAIL;
     }
@@ -639,6 +663,7 @@ BaseType_t app_storage_init(void)
     vQueueAddToRegistry(g_request_queue, "StorageRequests");
     vQueueAddToRegistry(g_response_queue, "StorageResponses");
     vQueueAddToRegistry(g_binary_response_queue, "StorageBinaryResponses");
+    vQueueAddToRegistry(g_log_response_queue, "StorageLogResponses");
     return pdPASS;
 }
 
@@ -669,6 +694,15 @@ BaseType_t app_storage_receive_binary(app_storage_binary_response_t *response)
     return xQueueReceive(g_binary_response_queue, response, 0U);
 }
 
+BaseType_t app_storage_receive_log(app_storage_binary_response_t *response)
+{
+    if (response == NULL || g_log_response_queue == NULL)
+    {
+        return pdFAIL;
+    }
+    return xQueueReceive(g_log_response_queue, response, 0U);
+}
+
 app_storage_state_t app_storage_get_state(void)
 {
     return g_storage_state;
@@ -691,12 +725,14 @@ void AppStorageTask(void *argument)
     result = app_storage_mount();
     if (result == FR_OK)
     {
+        app_logs_add(APP_LOG_LEVEL_INFO, "STORAGE", "SD FAT32 MOUNTED");
         printf("SD card: %lu MB, FAT32 mount: PASS\r\n",
                (unsigned long)g_capacity_mb);
         app_storage_run_self_test();
     }
     else
     {
+        app_logs_add(APP_LOG_LEVEL_ERROR, "STORAGE", "SD MOUNT FAILED");
         printf("SD/FatFs mount: FAIL (%u)\r\n", (unsigned int)result);
     }
 
@@ -709,6 +745,12 @@ void AppStorageTask(void *argument)
             {
                 app_storage_process_binary(&request, &binary_response);
                 xQueueSend(g_binary_response_queue, &binary_response,
+                           portMAX_DELAY);
+            }
+            else if (request.operation == APP_STORAGE_OP_WRITE_LOG)
+            {
+                app_storage_process_binary(&request, &binary_response);
+                xQueueSend(g_log_response_queue, &binary_response,
                            portMAX_DELAY);
             }
             else

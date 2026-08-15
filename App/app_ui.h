@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+#include "app_logs.h"
 #include "app_monitor.h"
 #include "app_storage.h"
 
@@ -22,6 +23,16 @@ typedef enum
 } app_ui_application_t;
 
 #define APP_UI_FILES_PAGE_SIZE 6U
+#define APP_UI_LOGS_PAGE_SIZE  7U
+
+typedef enum
+{
+    APP_UI_LOGS_ACTION_NONE = 0,
+    APP_UI_LOGS_ACTION_CLEAR,
+    APP_UI_LOGS_ACTION_EXPORT,
+    APP_UI_LOGS_ACTION_PREVIOUS,
+    APP_UI_LOGS_ACTION_NEXT
+} app_ui_logs_action_t;
 
 #define APP_UI_DRAW_CANVAS_LEFT    28U
 #define APP_UI_DRAW_CANVAS_TOP     70U
@@ -87,6 +98,13 @@ void app_ui_draw_stroke(uint16_t x1,
                         uint16_t y2,
                         uint16_t color);
 app_ui_draw_action_t app_ui_draw_action_at(uint16_t x, uint16_t y);
+void app_ui_show_logs(const app_log_entry_t *entries,
+                      uint8_t entry_count,
+                      uint8_t page,
+                      const char *status,
+                      uint8_t busy,
+                      uint8_t clear_armed);
+app_ui_logs_action_t app_ui_logs_action_at(uint16_t x, uint16_t y);
 void app_ui_show_files_list(const app_storage_file_t *files,
                             uint8_t file_count,
                             uint8_t page,

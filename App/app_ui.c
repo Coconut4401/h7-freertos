@@ -38,6 +38,14 @@
 #define DRAW_BUTTON_WIDTH     134U
 #define DRAW_BUTTON_HEIGHT    42U
 
+#define LOG_LIST_X            18U
+#define LOG_LIST_Y            78U
+#define LOG_LIST_WIDTH        590U
+#define LOG_ROW_HEIGHT        46U
+#define LOG_BUTTON_X          630U
+#define LOG_BUTTON_WIDTH      150U
+#define LOG_BUTTON_HEIGHT     42U
+
 typedef struct
 {
     uint16_t x;
@@ -766,6 +774,165 @@ app_ui_draw_action_t app_ui_draw_action_at(uint16_t x, uint16_t y)
         }
     }
     return APP_UI_DRAW_ACTION_NONE;
+}
+
+static void app_ui_draw_log_button(uint16_t y,
+                                   const char *label,
+                                   uint8_t enabled)
+{
+    uint16_t fill_color;
+    uint16_t text_color;
+
+    fill_color = enabled ? UI_COLOR_BUTTON : UI_COLOR_PANEL_DARK;
+    text_color = enabled ? WHITE : UI_COLOR_MUTED;
+    lcd_fill(LOG_BUTTON_X, y,
+             LOG_BUTTON_X + LOG_BUTTON_WIDTH - 1U,
+             y + LOG_BUTTON_HEIGHT - 1U, fill_color);
+    lcd_draw_rectangle(LOG_BUTTON_X, y,
+                       LOG_BUTTON_X + LOG_BUTTON_WIDTH - 1U,
+                       y + LOG_BUTTON_HEIGHT - 1U,
+                       enabled ? WHITE : UI_COLOR_MUTED);
+    app_ui_show_centered(LOG_BUTTON_X, (uint16_t)(y + 13U),
+                         LOG_BUTTON_WIDTH, 16U, label, text_color);
+}
+
+static uint16_t app_ui_log_level_color(app_log_level_t level)
+{
+    if (level == APP_LOG_LEVEL_ERROR)
+    {
+        return RED;
+    }
+    if (level == APP_LOG_LEVEL_WARNING)
+    {
+        return YELLOW;
+    }
+    return GREEN;
+}
+
+static const char *app_ui_log_level_text(app_log_level_t level)
+{
+    if (level == APP_LOG_LEVEL_ERROR)
+    {
+        return "ERROR";
+    }
+    if (level == APP_LOG_LEVEL_WARNING)
+    {
+        return "WARN";
+    }
+    return "INFO";
+}
+
+void app_ui_show_logs(const app_log_entry_t *entries,
+                      uint8_t entry_count,
+                      uint8_t page,
+                      const char *status,
+                      uint8_t busy,
+                      uint8_t clear_armed)
+{
+    uint8_t row;
+    uint8_t index;
+    uint8_t page_count;
+    uint8_t restore_cursor;
+    uint16_t cursor_x;
+    uint16_t cursor_y;
+    uint16_t y;
+    char time_text[9];
+    const app_log_entry_t *entry;
+
+    restore_cursor = g_cursor_visible;
+    cursor_x = g_cursor_x;
+    cursor_y = g_cursor_y;
+    app_ui_cursor_hide();
+    app_ui_draw_application_header("SYSTEM LOGS");
+
+    app_ui_show_text(28U, 54U, 74U, 16U, 16U, "TIME", UI_COLOR_TOP);
+    app_ui_show_text(112U, 54U, 54U, 16U, 16U, "LEVEL", UI_COLOR_TOP);
+    app_ui_show_text(176U, 54U, 70U, 16U, 16U, "MODULE", UI_COLOR_TOP);
+    app_ui_show_text(256U, 54U, 340U, 16U, 16U, "MESSAGE", UI_COLOR_TOP);
+
+    for (row = 0U; row < APP_UI_LOGS_PAGE_SIZE; row++)
+    {
+        index = (uint8_t)(page * APP_UI_LOGS_PAGE_SIZE + row);
+        y = (uint16_t)(LOG_LIST_Y + row * LOG_ROW_HEIGHT);
+        lcd_fill(LOG_LIST_X, y,
+                 LOG_LIST_X + LOG_LIST_WIDTH - 1U,
+                 y + LOG_ROW_HEIGHT - 5U, UI_COLOR_PANEL_DARK);
+        lcd_draw_rectangle(LOG_LIST_X, y,
+                           LOG_LIST_X + LOG_LIST_WIDTH - 1U,
+                           y + LOG_ROW_HEIGHT - 5U, UI_COLOR_MUTED);
+        if (entries != NULL && index < entry_count)
+        {
+            entry = &entries[index];
+            app_ui_format_time(entry->uptime_seconds, time_text);
+            app_ui_show_text(28U, (uint16_t)(y + 13U), 76U, 16U, 16U,
+                             time_text, WHITE);
+            app_ui_show_text(112U, (uint16_t)(y + 13U), 54U, 16U, 16U,
+                             app_ui_log_level_text(entry->level),
+                             app_ui_log_level_color(entry->level));
+            app_ui_show_text(176U, (uint16_t)(y + 13U), 72U, 16U, 16U,
+                             entry->module, UI_COLOR_ACCENT);
+            app_ui_show_text(256U, (uint16_t)(y + 13U), 334U, 16U, 16U,
+                             entry->message, WHITE);
+        }
+    }
+
+    page_count = (uint8_t)((entry_count + APP_UI_LOGS_PAGE_SIZE - 1U) /
+                           APP_UI_LOGS_PAGE_SIZE);
+    app_ui_draw_log_button(78U, clear_armed ? "CONFIRM" : "CLEAR", !busy);
+    app_ui_draw_log_button(136U, "EXPORT", !busy);
+    app_ui_draw_log_button(222U, "PREVIOUS", !busy && page > 0U);
+    app_ui_draw_log_button(280U, "NEXT",
+                           !busy && page + 1U < page_count);
+
+    app_ui_show_text(638U, 352U, 50U, 16U, 16U, "PAGE", UI_COLOR_TOP);
+    app_ui_show_u32(688U, 352U, (uint32_t)page + 1U, 16U, WHITE);
+    app_ui_show_text(718U, 352U, 12U, 16U, 16U, "/", UI_COLOR_MUTED);
+    app_ui_show_u32(738U, 352U, page_count ? page_count : 1U, 16U, WHITE);
+    app_ui_show_text(638U, 384U, 54U, 16U, 16U, "COUNT", UI_COLOR_TOP);
+    app_ui_show_u32(696U, 384U, entry_count, 16U, WHITE);
+
+    lcd_fill(190U, 452U, 790U, 475U, UI_COLOR_TOP);
+    if (busy)
+    {
+        app_ui_show_text(200U, 456U, 64U, 16U, 16U, "BUSY", YELLOW);
+        app_ui_show_text(260U, 456U, 510U, 16U, 16U,
+                         status != NULL ? status : "PLEASE WAIT", WHITE);
+    }
+    else
+    {
+        app_ui_show_text(200U, 456U, 570U, 16U, 16U,
+                         status != NULL ? status : "READY", WHITE);
+    }
+
+    if (restore_cursor)
+    {
+        app_ui_cursor_show(cursor_x, cursor_y);
+    }
+}
+
+app_ui_logs_action_t app_ui_logs_action_at(uint16_t x, uint16_t y)
+{
+    if (x < LOG_BUTTON_X || x >= LOG_BUTTON_X + LOG_BUTTON_WIDTH)
+    {
+        return APP_UI_LOGS_ACTION_NONE;
+    }
+    if (y >= 78U && y < 78U + LOG_BUTTON_HEIGHT)
+    {
+        return APP_UI_LOGS_ACTION_CLEAR;
+    }
+    if (y >= 136U && y < 136U + LOG_BUTTON_HEIGHT)
+    {
+        return APP_UI_LOGS_ACTION_EXPORT;
+    }
+    if (y >= 222U && y < 222U + LOG_BUTTON_HEIGHT)
+    {
+        return APP_UI_LOGS_ACTION_PREVIOUS;
+    }
+    if (y >= 280U && y < 280U + LOG_BUTTON_HEIGHT)
+    {
+        return APP_UI_LOGS_ACTION_NEXT;
+    }
+    return APP_UI_LOGS_ACTION_NONE;
 }
 
 static void app_ui_draw_file_button(uint16_t x,

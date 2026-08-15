@@ -1,4 +1,4 @@
-../../output/app_draw.o: ..\..\App\app_draw.c ..\..\App\app_draw.h \
+../../output/app_logs.o: ..\..\App\app_logs.c ..\..\App\app_logs.h \
   ..\..\App\app_input.h \
   ..\..\Middlewares\FreeRTOS-Kernel-main\include\FreeRTOS.h \
   ..\..\User\FreeRTOSConfig.h \
@@ -10,10 +10,4 @@
   ..\..\Middlewares\FreeRTOS-Kernel-main\include\queue.h \
   ..\..\Middlewares\FreeRTOS-Kernel-main\include\task.h \
   ..\..\Middlewares\FreeRTOS-Kernel-main\include\list.h \
-  ..\..\App\app_logs.h ..\..\App\app_storage.h ..\..\App\app_ui.h \
-  ..\..\App\app_monitor.h ..\..\Drivers\.\BSP\LCD\lcd.h \
-  ..\..\Drivers\.\SYSTEM\sys\sys.h \
-  ..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h7xx.h \
-  ..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h743xx.h \
-  ..\..\Drivers\CMSIS\Include\core_cm7.h \
-  ..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\system_stm32h7xx.h
+  ..\..\App\app_storage.h ..\..\App\app_ui.h ..\..\App\app_monitor.h

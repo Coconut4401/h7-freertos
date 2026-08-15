@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "FreeRTOS.h"
+#include "app_logs.h"
 #include "app_storage.h"
 #include "app_ui.h"
 
@@ -354,6 +355,7 @@ static void app_files_handle_response(const app_storage_response_t *response)
     }
     if (response->result != APP_STORAGE_RESULT_OK)
     {
+        app_logs_add(APP_LOG_LEVEL_ERROR, "FILES", "FILE OPERATION FAILED");
         app_files_set_status(app_files_error_text(response->result));
         app_files_redraw();
         return;
@@ -386,9 +388,11 @@ static void app_files_handle_response(const app_storage_response_t *response)
                 app_files_set_status("SD DIRECTORY LOADED");
             }
             app_files_redraw();
+            app_logs_add(APP_LOG_LEVEL_INFO, "FILES", "DIRECTORY LOADED");
             break;
 
         case APP_STORAGE_OP_CREATE:
+            app_logs_add(APP_LOG_LEVEL_INFO, "FILES", "FILE CREATED");
             app_files_request_list("FILE CREATED AND SAVED");
             break;
 
@@ -408,6 +412,7 @@ static void app_files_handle_response(const app_storage_response_t *response)
             app_files_set_status(g_files.read_only ?
                                  "VIEW ONLY - FILE IS BINARY OR TOO LARGE" :
                                  "FILE READ FROM SD CARD");
+            app_logs_add(APP_LOG_LEVEL_INFO, "FILES", "FILE OPENED");
             app_files_redraw();
             break;
 
@@ -415,6 +420,7 @@ static void app_files_handle_response(const app_storage_response_t *response)
             g_files.dirty = 0U;
             g_files.open_file_size = response->content_length;
             app_files_set_status("FILE SAVED - DATA IS PERSISTENT");
+            app_logs_add(APP_LOG_LEVEL_INFO, "FILES", "FILE SAVED");
             app_files_redraw();
             break;
 
@@ -423,6 +429,7 @@ static void app_files_handle_response(const app_storage_response_t *response)
             g_files.selected_file = -1;
             g_files.open_name[0] = '\0';
             g_files.content[0] = '\0';
+            app_logs_add(APP_LOG_LEVEL_WARNING, "FILES", "FILE DELETED");
             app_files_request_list("FILE DELETED FROM SD CARD");
             break;
 

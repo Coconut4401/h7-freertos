@@ -479,6 +479,16 @@
               <FileType>5</FileType>
               <FilePath>..\..\App\app_draw.h</FilePath>
             </File>
+            <File>
+              <FileName>app_logs.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\App\app_logs.c</FilePath>
+            </File>
+            <File>
+              <FileName>app_logs.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\App\app_logs.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

@@ -26,7 +26,8 @@ typedef enum
     APP_STORAGE_OP_WRITE,
     APP_STORAGE_OP_DELETE,
     APP_STORAGE_OP_READ_BINARY,
-    APP_STORAGE_OP_WRITE_BINARY
+    APP_STORAGE_OP_WRITE_BINARY,
+    APP_STORAGE_OP_WRITE_LOG
 } app_storage_operation_t;
 
 typedef enum
@@ -85,6 +86,7 @@ BaseType_t app_storage_init(void);
 BaseType_t app_storage_submit(const app_storage_request_t *request);
 BaseType_t app_storage_receive(app_storage_response_t *response);
 BaseType_t app_storage_receive_binary(app_storage_binary_response_t *response);
+BaseType_t app_storage_receive_log(app_storage_binary_response_t *response);
 app_storage_state_t app_storage_get_state(void);
 uint32_t app_storage_get_capacity_mb(void);
 void AppStorageTask(void *argument);

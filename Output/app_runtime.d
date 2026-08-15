@@ -11,4 +11,5 @@
   ..\..\Middlewares\FreeRTOS-Kernel-main\include\task.h \
   ..\..\Middlewares\FreeRTOS-Kernel-main\include\list.h \
   ..\..\App\app_draw.h ..\..\App\app_input.h ..\..\App\app_files.h \
-  ..\..\App\app_monitor.h ..\..\App\app_ui.h ..\..\App\app_storage.h
+  ..\..\App\app_logs.h ..\..\App\app_monitor.h ..\..\App\app_ui.h \
+  ..\..\App\app_storage.h

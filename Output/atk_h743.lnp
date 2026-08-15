@@ -8,6 +8,7 @@
 "..\..\output\app_storage.o"
 "..\..\output\app_files.o"
 "..\..\output\app_draw.o"
+"..\..\output\app_logs.o"
 "..\..\output\delay.o"
 "..\..\output\sys.o"
 "..\..\output\usart.o"

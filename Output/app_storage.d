@@ -10,6 +10,7 @@
   ..\..\Middlewares\FreeRTOS-Kernel-main\include\queue.h \
   ..\..\Middlewares\FreeRTOS-Kernel-main\include\task.h \
   ..\..\Middlewares\FreeRTOS-Kernel-main\include\list.h \
+  ..\..\App\app_logs.h ..\..\App\app_input.h \
   ..\..\Middlewares\FatFs\ff.h ..\..\Middlewares\FatFs\integer.h \
   ..\..\Middlewares\FatFs\ffconf.h \
   ..\..\Drivers\.\BSP\SDMMC\sdmmc_sdcard.h \
