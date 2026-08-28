@@ -1,6 +1,9 @@
 #include "app_ui.h"
 
+#include <string.h>
+
 #include "./BSP/LCD/lcd.h"
+#include "app_input.h"
 
 #define UI_WIDTH              800U
 #define UI_HEIGHT             480U
@@ -23,8 +26,11 @@
 #define KEY_GAP_X             12U
 #define KEY_GAP_Y             10U
 
-#define CURSOR_WIDTH          12U
-#define CURSOR_HEIGHT         16U
+#define CURSOR_BASE_WIDTH     6U
+#define CURSOR_BASE_HEIGHT    8U
+#define CURSOR_MAX_SCALE      APP_UI_CURSOR_SIZE_LARGE
+#define CURSOR_MAX_WIDTH      (CURSOR_BASE_WIDTH * CURSOR_MAX_SCALE)
+#define CURSOR_MAX_HEIGHT     (CURSOR_BASE_HEIGHT * CURSOR_MAX_SCALE)
 
 #define FILE_LIST_X           24U
 #define FILE_LIST_Y           74U
@@ -73,30 +79,23 @@ static const desktop_icon_t g_desktop_icons[6] =
     {580U, 250U, 150U, 120U, "SETTINGS"}
 };
 
-static const char g_cursor_bitmap[CURSOR_HEIGHT][CURSOR_WIDTH + 1U] =
+static const char g_cursor_bitmap[CURSOR_BASE_HEIGHT][CURSOR_BASE_WIDTH + 1U] =
 {
-    "#...........",
-    "##..........",
-    "#+#.........",
-    "#++#........",
-    "#+++#.......",
-    "#++++#......",
-    "#+++++#.....",
-    "#++++++#....",
-    "#+++++++#...",
-    "#++++######.",
-    "#+++#.......",
-    "#+#++#......",
-    "##.#++#.....",
-    "#...#++#....",
-    "....#++#....",
-    ".....##....."
+    "#.....",
+    "##....",
+    "#+#...",
+    "#++#..",
+    "#+++#.",
+    "#+###.",
+    "##+.#.",
+    ".##..."
 };
 
-static uint32_t g_cursor_background[CURSOR_WIDTH * CURSOR_HEIGHT];
+static uint32_t g_cursor_background[CURSOR_MAX_WIDTH * CURSOR_MAX_HEIGHT];
 static uint16_t g_cursor_x;
 static uint16_t g_cursor_y;
 static uint8_t g_cursor_visible;
+static uint8_t g_cursor_size = APP_UI_CURSOR_SIZE_MEDIUM;
 static int8_t g_selected_icon = -1;
 
 static uint16_t app_ui_text_width(const char *text, uint8_t font_size)
@@ -213,19 +212,23 @@ static void app_ui_cursor_hide(void)
 {
     uint16_t row;
     uint16_t column;
+    uint16_t cursor_width;
+    uint16_t cursor_height;
 
     if (!g_cursor_visible)
     {
         return;
     }
 
-    for (row = 0U; row < CURSOR_HEIGHT; row++)
+    cursor_width = (uint16_t)(CURSOR_BASE_WIDTH * g_cursor_size);
+    cursor_height = (uint16_t)(CURSOR_BASE_HEIGHT * g_cursor_size);
+    for (row = 0U; row < cursor_height; row++)
     {
-        for (column = 0U; column < CURSOR_WIDTH; column++)
+        for (column = 0U; column < cursor_width; column++)
         {
             lcd_draw_point((uint16_t)(g_cursor_x + column),
                            (uint16_t)(g_cursor_y + row),
-                           g_cursor_background[row * CURSOR_WIDTH + column]);
+                           g_cursor_background[row * CURSOR_MAX_WIDTH + column]);
         }
     }
 
@@ -236,34 +239,39 @@ static void app_ui_cursor_show(uint16_t x, uint16_t y)
 {
     uint16_t row;
     uint16_t column;
+    uint16_t cursor_width;
+    uint16_t cursor_height;
     char pixel;
 
-    if (x > UI_WIDTH - CURSOR_WIDTH)
+    cursor_width = (uint16_t)(CURSOR_BASE_WIDTH * g_cursor_size);
+    cursor_height = (uint16_t)(CURSOR_BASE_HEIGHT * g_cursor_size);
+    if (x > UI_WIDTH - cursor_width)
     {
-        x = UI_WIDTH - CURSOR_WIDTH;
+        x = UI_WIDTH - cursor_width;
     }
-    if (y > UI_HEIGHT - CURSOR_HEIGHT)
+    if (y > UI_HEIGHT - cursor_height)
     {
-        y = UI_HEIGHT - CURSOR_HEIGHT;
+        y = UI_HEIGHT - cursor_height;
     }
 
     g_cursor_x = x;
     g_cursor_y = y;
 
-    for (row = 0U; row < CURSOR_HEIGHT; row++)
+    for (row = 0U; row < cursor_height; row++)
     {
-        for (column = 0U; column < CURSOR_WIDTH; column++)
+        for (column = 0U; column < cursor_width; column++)
         {
-            g_cursor_background[row * CURSOR_WIDTH + column] =
+            g_cursor_background[row * CURSOR_MAX_WIDTH + column] =
                 lcd_read_point((uint16_t)(x + column), (uint16_t)(y + row));
         }
     }
 
-    for (row = 0U; row < CURSOR_HEIGHT; row++)
+    for (row = 0U; row < cursor_height; row++)
     {
-        for (column = 0U; column < CURSOR_WIDTH; column++)
+        for (column = 0U; column < cursor_width; column++)
         {
-            pixel = g_cursor_bitmap[row][column];
+            pixel = g_cursor_bitmap[row / g_cursor_size]
+                                   [column / g_cursor_size];
             if (pixel == '#')
             {
                 lcd_draw_point((uint16_t)(x + column), (uint16_t)(y + row), BLACK);
@@ -348,6 +356,9 @@ static void app_ui_draw_application_header(const char *title)
     lcd_draw_rectangle(12U, 8U, 108U, 39U, WHITE);
     app_ui_show_centered(12U, 12U, 97U, 16U, "BACK", BLACK);
     app_ui_show_text(142U, 12U, 500U, 24U, 24U, title, WHITE);
+    lcd_fill(680U, 8U, 788U, 39U, UI_COLOR_BUTTON);
+    lcd_draw_rectangle(680U, 8U, 788U, 39U, WHITE);
+    app_ui_show_centered(680U, 12U, 109U, 16U, "SLEEP", WHITE);
     app_ui_show_text(16U, 456U, 500U, 16U, 16U,
                      "BACK returns to the desktop", WHITE);
 }
@@ -523,6 +534,9 @@ void app_ui_show_desktop(uint8_t touch_available,
     }
     app_ui_show_text(18U, 216U, 145U, 16U, 16U, "APPS: 6", WHITE);
     app_ui_show_text(18U, 250U, 145U, 16U, 16U, "CURSOR: ACTIVE", WHITE);
+    lcd_fill(18U, 306U, 162U, 350U, UI_COLOR_BUTTON);
+    lcd_draw_rectangle(18U, 306U, 162U, 350U, WHITE);
+    app_ui_show_centered(18U, 320U, 145U, 16U, "SLEEP", WHITE);
 
     for (index = 0U; index < 6U; index++)
     {
@@ -560,6 +574,30 @@ void app_ui_move_cursor(uint16_t x, uint16_t y)
 {
     app_ui_cursor_hide();
     app_ui_cursor_show(x, y);
+}
+
+void app_ui_set_cursor_size(uint8_t cursor_size)
+{
+    uint8_t restore_cursor;
+    uint16_t cursor_x;
+    uint16_t cursor_y;
+
+    if (cursor_size < APP_UI_CURSOR_SIZE_SMALL ||
+        cursor_size > APP_UI_CURSOR_SIZE_LARGE ||
+        cursor_size == g_cursor_size)
+    {
+        return;
+    }
+
+    restore_cursor = g_cursor_visible;
+    cursor_x = g_cursor_x;
+    cursor_y = g_cursor_y;
+    app_ui_cursor_hide();
+    g_cursor_size = cursor_size;
+    if (restore_cursor)
+    {
+        app_ui_cursor_show(cursor_x, cursor_y);
+    }
 }
 
 int8_t app_ui_desktop_icon_at(uint16_t x, uint16_t y)
@@ -614,9 +652,19 @@ void app_ui_select_desktop_icon(int8_t icon_index)
     }
 }
 
+uint8_t app_ui_desktop_sleep_button_at(uint16_t x, uint16_t y)
+{
+    return (x >= 18U && x <= 162U && y >= 306U && y <= 350U) ? 1U : 0U;
+}
+
 uint8_t app_ui_back_button_at(uint16_t x, uint16_t y)
 {
     return (x >= 12U && x <= 108U && y >= 8U && y <= 39U) ? 1U : 0U;
+}
+
+uint8_t app_ui_application_sleep_button_at(uint16_t x, uint16_t y)
+{
+    return (x >= 680U && x <= 788U && y >= 8U && y <= 39U) ? 1U : 0U;
 }
 
 void app_ui_show_application(app_ui_application_t application)
@@ -640,6 +688,280 @@ void app_ui_show_application(app_ui_application_t application)
                          "APPLICATION SHELL READY", UI_COLOR_TOP);
     app_ui_show_centered(140U, 370U, 520U, 16U,
                          "This feature will be implemented later", UI_COLOR_PANEL);
+}
+
+static void app_ui_draw_music_button(uint16_t y,
+                                     const char *label,
+                                     uint8_t enabled)
+{
+    uint16_t fill_color;
+    uint16_t text_color;
+
+    fill_color = enabled ? UI_COLOR_BUTTON : UI_COLOR_PANEL_DARK;
+    text_color = enabled ? WHITE : UI_COLOR_MUTED;
+    lcd_fill(FILE_BUTTON_X, y,
+             FILE_BUTTON_X + FILE_BUTTON_WIDTH - 1U, y + 39U,
+             fill_color);
+    lcd_draw_rectangle(FILE_BUTTON_X, y,
+                       FILE_BUTTON_X + FILE_BUTTON_WIDTH - 1U, y + 39U,
+                       enabled ? WHITE : UI_COLOR_MUTED);
+    app_ui_show_centered(FILE_BUTTON_X, (uint16_t)(y + 12U),
+                         FILE_BUTTON_WIDTH, 16U, label, text_color);
+}
+
+static const char *app_ui_music_state_text(app_audio_state_t state)
+{
+    if (state == APP_AUDIO_STATE_PLAYING)
+    {
+        return "PLAYING";
+    }
+    if (state == APP_AUDIO_STATE_PAUSED)
+    {
+        return "PAUSED";
+    }
+    if (state == APP_AUDIO_STATE_TEST_TONE)
+    {
+        return "TEST TONE";
+    }
+    if (state == APP_AUDIO_STATE_NO_TRACKS)
+    {
+        return "NO TRACKS";
+    }
+    if (state == APP_AUDIO_STATE_ERROR)
+    {
+        return "ERROR";
+    }
+    if (state == APP_AUDIO_STATE_STARTING)
+    {
+        return "SCANNING";
+    }
+    return "STOPPED";
+}
+
+static uint32_t app_ui_music_progress(const app_audio_snapshot_t *snapshot)
+{
+    uint32_t progress;
+
+    progress = 0U;
+    if (snapshot->data_size > 0U)
+    {
+        progress = (uint32_t)(((uint64_t)snapshot->data_loaded * 100U) /
+                              snapshot->data_size);
+        if (progress > 100U)
+        {
+            progress = 100U;
+        }
+    }
+    return progress;
+}
+
+void app_ui_show_music(const app_audio_snapshot_t *snapshot)
+{
+    uint8_t restore_cursor;
+    uint16_t cursor_x;
+    uint16_t cursor_y;
+    uint32_t progress;
+    const char *play_label;
+
+    if (snapshot == NULL)
+    {
+        return;
+    }
+    restore_cursor = g_cursor_visible;
+    cursor_x = g_cursor_x;
+    cursor_y = g_cursor_y;
+    app_ui_cursor_hide();
+    app_ui_draw_application_header("MUSIC PLAYER");
+
+    lcd_fill(24U, 66U, 590U, 410U, UI_COLOR_PANEL_DARK);
+    lcd_draw_rectangle(24U, 66U, 590U, 410U, UI_COLOR_MUTED);
+    app_ui_show_text(44U, 82U, 160U, 16U, 16U, "CURRENT TRACK", UI_COLOR_MUTED);
+    app_ui_show_text(44U, 108U, 510U, 24U, 24U,
+                     snapshot->track_name[0] != '\0' ? snapshot->track_name :
+                     "NO WAV SELECTED", WHITE);
+
+    app_ui_show_text(44U, 154U, 80U, 16U, 16U, "STATE", UI_COLOR_MUTED);
+    app_ui_show_text(140U, 154U, 180U, 16U, 16U,
+                     app_ui_music_state_text(snapshot->state),
+                     snapshot->state == APP_AUDIO_STATE_ERROR ? RED : YELLOW);
+    app_ui_show_text(344U, 154U, 80U, 16U, 16U, "TRACK", UI_COLOR_MUTED);
+    if (snapshot->track_count > 0U)
+    {
+        app_ui_show_u32(424U, 154U,
+                        (uint32_t)snapshot->selected_track + 1U, 16U, WHITE);
+        app_ui_show_text(448U, 154U, 16U, 16U, 16U, "/", UI_COLOR_MUTED);
+        app_ui_show_u32(464U, 154U, snapshot->track_count, 16U, WHITE);
+    }
+    else
+    {
+        app_ui_show_text(424U, 154U, 32U, 16U, 16U, "0", WHITE);
+    }
+
+    app_ui_show_text(44U, 198U, 112U, 16U, 16U, "PCM FORMAT", UI_COLOR_MUTED);
+    if (snapshot->sample_rate > 0U)
+    {
+        app_ui_show_u32(174U, 198U, snapshot->sample_rate, 16U, WHITE);
+        app_ui_show_text(230U, 198U, 40U, 16U, 16U, "HZ", WHITE);
+        app_ui_show_u32(302U, 198U, snapshot->bits_per_sample, 16U, WHITE);
+        app_ui_show_text(326U, 198U, 40U, 16U, 16U, "BIT", WHITE);
+        app_ui_show_text(402U, 198U, 90U, 16U, 16U,
+                         snapshot->channels == 1U ? "MONO" : "STEREO", WHITE);
+    }
+    else
+    {
+        app_ui_show_text(174U, 198U, 150U, 16U, 16U, "NOT OPENED", WHITE);
+    }
+
+    app_ui_show_text(44U, 240U, 80U, 16U, 16U, "VOLUME", UI_COLOR_MUTED);
+    app_ui_show_u32(140U, 240U, snapshot->volume_percent, 16U, WHITE);
+    app_ui_show_text(176U, 240U, 24U, 16U, 16U, "%", WHITE);
+    app_ui_show_text(294U, 240U, 96U, 16U, 16U, "PROGRESS", UI_COLOR_MUTED);
+    progress = app_ui_music_progress(snapshot);
+    app_ui_show_u32(414U, 240U, progress, 16U, WHITE);
+    app_ui_show_text(450U, 240U, 24U, 16U, 16U, "%", WHITE);
+    lcd_fill(44U, 274U, 558U, 299U, UI_COLOR_PANEL);
+    lcd_draw_rectangle(44U, 274U, 558U, 299U, UI_COLOR_MUTED);
+    if (progress > 0U)
+    {
+        lcd_fill(46U, 276U,
+                 (uint16_t)(46U + (510U * progress) / 100U),
+                 297U, UI_COLOR_SELECTED);
+    }
+
+    app_ui_show_text(44U, 330U, 510U, 16U, 16U,
+                     snapshot->status, WHITE);
+    app_ui_show_text(44U, 372U, 510U, 16U, 16U,
+                     "WAV: PCM 16-BIT, 16/32/44.1/48 KHZ", UI_COLOR_MUTED);
+
+    play_label = (snapshot->state == APP_AUDIO_STATE_PLAYING ||
+                  snapshot->state == APP_AUDIO_STATE_TEST_TONE) ? "PAUSE" :
+                 (snapshot->state == APP_AUDIO_STATE_PAUSED) ? "RESUME" : "PLAY";
+    app_ui_draw_music_button(70U, "PREVIOUS", snapshot->track_count > 0U);
+    app_ui_draw_music_button(120U, play_label, snapshot->track_count > 0U ||
+                             snapshot->state == APP_AUDIO_STATE_PAUSED);
+    app_ui_draw_music_button(170U, "STOP", 1U);
+    app_ui_draw_music_button(220U, "NEXT", snapshot->track_count > 0U);
+    app_ui_draw_music_button(290U, "TEST 440HZ", 1U);
+    app_ui_draw_music_button(350U, "RESCAN SD", 1U);
+
+    if (restore_cursor)
+    {
+        app_ui_cursor_show(cursor_x, cursor_y);
+    }
+}
+
+void app_ui_update_music(const app_audio_snapshot_t *snapshot,
+                         const app_audio_snapshot_t *previous)
+{
+    uint8_t restore_cursor;
+    uint8_t state_changed;
+    uint8_t volume_changed;
+    uint8_t progress_changed;
+    uint8_t status_changed;
+    uint16_t cursor_x;
+    uint16_t cursor_y;
+    uint32_t progress;
+    uint32_t previous_progress;
+    const char *play_label;
+
+    if (snapshot == NULL || previous == NULL)
+    {
+        return;
+    }
+    progress = app_ui_music_progress(snapshot);
+    previous_progress = app_ui_music_progress(previous);
+    state_changed = (snapshot->state != previous->state) ? 1U : 0U;
+    volume_changed = (snapshot->volume_percent !=
+                      previous->volume_percent) ? 1U : 0U;
+    progress_changed = (progress != previous_progress) ? 1U : 0U;
+    status_changed = (strcmp(snapshot->status, previous->status) != 0) ?
+                     1U : 0U;
+    if (!state_changed && !volume_changed && !progress_changed &&
+        !status_changed)
+    {
+        return;
+    }
+
+    restore_cursor = g_cursor_visible;
+    cursor_x = g_cursor_x;
+    cursor_y = g_cursor_y;
+    app_ui_cursor_hide();
+
+    if (state_changed)
+    {
+        lcd_fill(140U, 154U, 319U, 169U, UI_COLOR_PANEL_DARK);
+        app_ui_show_text(140U, 154U, 180U, 16U, 16U,
+                         app_ui_music_state_text(snapshot->state),
+                         snapshot->state == APP_AUDIO_STATE_ERROR ? RED : YELLOW);
+        play_label = (snapshot->state == APP_AUDIO_STATE_PLAYING ||
+                      snapshot->state == APP_AUDIO_STATE_TEST_TONE) ? "PAUSE" :
+                     (snapshot->state == APP_AUDIO_STATE_PAUSED) ? "RESUME" : "PLAY";
+        app_ui_draw_music_button(120U, play_label,
+                                 snapshot->track_count > 0U ||
+                                 snapshot->state == APP_AUDIO_STATE_PAUSED);
+    }
+    if (volume_changed)
+    {
+        lcd_fill(140U, 240U, 175U, 255U, UI_COLOR_PANEL_DARK);
+        app_ui_show_u32(140U, 240U, snapshot->volume_percent, 16U, WHITE);
+    }
+    if (progress_changed)
+    {
+        lcd_fill(414U, 240U, 449U, 255U, UI_COLOR_PANEL_DARK);
+        app_ui_show_u32(414U, 240U, progress, 16U, WHITE);
+        lcd_fill(44U, 274U, 558U, 299U, UI_COLOR_PANEL);
+        lcd_draw_rectangle(44U, 274U, 558U, 299U, UI_COLOR_MUTED);
+        if (progress > 0U)
+        {
+            lcd_fill(46U, 276U,
+                     (uint16_t)(46U + (510U * progress) / 100U),
+                     297U, UI_COLOR_SELECTED);
+        }
+    }
+    if (status_changed)
+    {
+        lcd_fill(44U, 330U, 553U, 345U, UI_COLOR_PANEL_DARK);
+        app_ui_show_text(44U, 330U, 510U, 16U, 16U,
+                         snapshot->status, WHITE);
+    }
+
+    if (restore_cursor)
+    {
+        app_ui_cursor_show(cursor_x, cursor_y);
+    }
+}
+
+app_ui_music_action_t app_ui_music_action_at(uint16_t x, uint16_t y)
+{
+    if (x < FILE_BUTTON_X || x >= FILE_BUTTON_X + FILE_BUTTON_WIDTH)
+    {
+        return APP_UI_MUSIC_ACTION_NONE;
+    }
+    if (y >= 70U && y < 110U)
+    {
+        return APP_UI_MUSIC_ACTION_PREVIOUS;
+    }
+    if (y >= 120U && y < 160U)
+    {
+        return APP_UI_MUSIC_ACTION_PLAY_PAUSE;
+    }
+    if (y >= 170U && y < 210U)
+    {
+        return APP_UI_MUSIC_ACTION_STOP;
+    }
+    if (y >= 220U && y < 260U)
+    {
+        return APP_UI_MUSIC_ACTION_NEXT;
+    }
+    if (y >= 290U && y < 330U)
+    {
+        return APP_UI_MUSIC_ACTION_TEST_TONE;
+    }
+    if (y >= 350U && y < 390U)
+    {
+        return APP_UI_MUSIC_ACTION_RESCAN;
+    }
+    return APP_UI_MUSIC_ACTION_NONE;
 }
 
 static void app_ui_draw_draw_button(uint16_t y,
@@ -933,6 +1255,284 @@ app_ui_logs_action_t app_ui_logs_action_at(uint16_t x, uint16_t y)
         return APP_UI_LOGS_ACTION_NEXT;
     }
     return APP_UI_LOGS_ACTION_NONE;
+}
+
+static void app_ui_draw_settings_button(uint16_t x,
+                                        uint16_t y,
+                                        uint16_t width,
+                                        uint16_t height,
+                                        const char *label,
+                                        uint8_t selected,
+                                        uint8_t enabled)
+{
+    uint16_t fill_color;
+    uint16_t border_color;
+    uint16_t text_color;
+
+    if (selected)
+    {
+        fill_color = UI_COLOR_SELECTED;
+        border_color = YELLOW;
+        text_color = WHITE;
+    }
+    else if (enabled)
+    {
+        fill_color = UI_COLOR_BUTTON;
+        border_color = WHITE;
+        text_color = WHITE;
+    }
+    else
+    {
+        fill_color = UI_COLOR_PANEL_DARK;
+        border_color = UI_COLOR_MUTED;
+        text_color = UI_COLOR_MUTED;
+    }
+
+    lcd_fill(x, y, (uint16_t)(x + width - 1U),
+             (uint16_t)(y + height - 1U), fill_color);
+    lcd_draw_rectangle(x, y, (uint16_t)(x + width - 1U),
+                       (uint16_t)(y + height - 1U), border_color);
+    app_ui_show_centered(x, (uint16_t)(y + (height - 16U) / 2U),
+                         width, 16U, label, text_color);
+}
+
+void app_ui_show_settings(uint8_t cursor_sensitivity,
+                          uint8_t cursor_size,
+                          uint8_t brightness_percent,
+                          uint8_t volume_percent,
+                          uint32_t idle_timeout_seconds,
+                          uint8_t serial_output_enabled,
+                          uint8_t dirty,
+                          const char *status,
+                          uint8_t busy)
+{
+    uint8_t restore_cursor;
+    uint16_t cursor_x;
+    uint16_t cursor_y;
+
+    restore_cursor = g_cursor_visible;
+    cursor_x = g_cursor_x;
+    cursor_y = g_cursor_y;
+    app_ui_cursor_hide();
+    app_ui_draw_application_header("SYSTEM SETTINGS");
+
+    if (dirty)
+    {
+        app_ui_show_text(550U, 16U, 96U, 16U, 16U,
+                         "UNSAVED", YELLOW);
+    }
+
+    lcd_fill(24U, 62U, 388U, 132U, UI_COLOR_PANEL_DARK);
+    lcd_draw_rectangle(24U, 62U, 388U, 132U, UI_COLOR_MUTED);
+    app_ui_show_text(40U, 70U, 260U, 16U, 16U,
+                     "CURSOR SENSITIVITY", UI_COLOR_MUTED);
+    app_ui_draw_settings_button(40U, 92U, 100U, 32U, "LOW",
+        cursor_sensitivity == APP_INPUT_SENSITIVITY_LOW, !busy);
+    app_ui_draw_settings_button(148U, 92U, 100U, 32U, "NORMAL",
+        cursor_sensitivity == APP_INPUT_SENSITIVITY_NORMAL, !busy);
+    app_ui_draw_settings_button(256U, 92U, 100U, 32U, "HIGH",
+        cursor_sensitivity == APP_INPUT_SENSITIVITY_HIGH, !busy);
+
+    lcd_fill(412U, 62U, 776U, 132U, UI_COLOR_PANEL_DARK);
+    lcd_draw_rectangle(412U, 62U, 776U, 132U, UI_COLOR_MUTED);
+    app_ui_show_text(428U, 70U, 230U, 16U, 16U,
+                     "CURSOR SIZE", UI_COLOR_MUTED);
+    app_ui_draw_settings_button(428U, 92U, 100U, 32U, "SMALL",
+        cursor_size == APP_UI_CURSOR_SIZE_SMALL, !busy);
+    app_ui_draw_settings_button(536U, 92U, 100U, 32U, "MEDIUM",
+        cursor_size == APP_UI_CURSOR_SIZE_MEDIUM, !busy);
+    app_ui_draw_settings_button(644U, 92U, 100U, 32U, "LARGE",
+        cursor_size == APP_UI_CURSOR_SIZE_LARGE, !busy);
+
+    lcd_fill(24U, 144U, 776U, 210U, UI_COLOR_PANEL_DARK);
+    lcd_draw_rectangle(24U, 144U, 776U, 210U, UI_COLOR_MUTED);
+    app_ui_show_text(40U, 152U, 230U, 16U, 16U,
+                     "SCREEN BRIGHTNESS", UI_COLOR_MUTED);
+    app_ui_draw_settings_button(40U, 174U, 160U, 30U, "25%",
+        brightness_percent == 25U, !busy);
+    app_ui_draw_settings_button(220U, 174U, 160U, 30U, "50%",
+        brightness_percent == 50U, !busy);
+    app_ui_draw_settings_button(400U, 174U, 160U, 30U, "75%",
+        brightness_percent == 75U, !busy);
+    app_ui_draw_settings_button(580U, 174U, 160U, 30U, "100%",
+        brightness_percent == 100U, !busy);
+
+    lcd_fill(24U, 220U, 776U, 286U, UI_COLOR_PANEL_DARK);
+    lcd_draw_rectangle(24U, 220U, 776U, 286U, UI_COLOR_MUTED);
+    app_ui_show_text(40U, 228U, 360U, 16U, 16U,
+                     "SCREEN OFF AFTER INACTIVITY", UI_COLOR_MUTED);
+    app_ui_draw_settings_button(40U, 250U, 160U, 30U, "OFF",
+        idle_timeout_seconds == 0U, !busy);
+    app_ui_draw_settings_button(220U, 250U, 160U, 30U, "30 SEC",
+        idle_timeout_seconds == 30U, !busy);
+    app_ui_draw_settings_button(400U, 250U, 160U, 30U, "60 SEC",
+        idle_timeout_seconds == 60U, !busy);
+    app_ui_draw_settings_button(580U, 250U, 160U, 30U, "120 SEC",
+        idle_timeout_seconds == 120U, !busy);
+
+    lcd_fill(24U, 296U, 388U, 374U, UI_COLOR_PANEL_DARK);
+    lcd_draw_rectangle(24U, 296U, 388U, 374U, UI_COLOR_MUTED);
+    app_ui_show_text(40U, 304U, 230U, 16U, 16U,
+                     "SERIAL RTOS STATUS", UI_COLOR_MUTED);
+    app_ui_draw_settings_button(40U, 328U, 130U, 32U, "ON",
+        serial_output_enabled ? 1U : 0U, !busy);
+    app_ui_draw_settings_button(190U, 328U, 130U, 32U, "OFF",
+        serial_output_enabled ? 0U : 1U, !busy);
+
+    app_ui_show_text(428U, 304U, 160U, 16U, 16U,
+                     "ACTIONS", UI_COLOR_MUTED);
+    app_ui_draw_settings_button(430U, 320U, 150U, 42U, "DEFAULTS",
+                                0U, !busy);
+    app_ui_draw_settings_button(610U, 320U, 150U, 42U, "SAVE",
+                                0U, !busy && dirty);
+
+    lcd_fill(24U, 382U, 776U, 442U, UI_COLOR_PANEL_DARK);
+    lcd_draw_rectangle(24U, 382U, 776U, 442U, UI_COLOR_MUTED);
+    app_ui_show_text(40U, 389U, 230U, 16U, 16U,
+                     "SYSTEM VOLUME", UI_COLOR_MUTED);
+    app_ui_draw_settings_button(40U, 408U, 120U, 28U, "0%",
+        volume_percent == 0U, !busy);
+    app_ui_draw_settings_button(184U, 408U, 120U, 28U, "25%",
+        volume_percent == 25U, !busy);
+    app_ui_draw_settings_button(328U, 408U, 120U, 28U, "50%",
+        volume_percent == 50U, !busy);
+    app_ui_draw_settings_button(472U, 408U, 120U, 28U, "75%",
+        volume_percent == 75U, !busy);
+    app_ui_draw_settings_button(616U, 408U, 120U, 28U, "100%",
+        volume_percent == 100U, !busy);
+
+    lcd_fill(190U, 452U, 790U, 475U, UI_COLOR_TOP);
+    if (busy)
+    {
+        app_ui_show_text(200U, 456U, 64U, 16U, 16U, "BUSY", YELLOW);
+        app_ui_show_text(260U, 456U, 510U, 16U, 16U,
+                         status != NULL ? status : "PLEASE WAIT", WHITE);
+    }
+    else
+    {
+        app_ui_show_text(200U, 456U, 570U, 16U, 16U,
+                         status != NULL ? status : "READY", WHITE);
+    }
+
+    if (restore_cursor)
+    {
+        app_ui_cursor_show(cursor_x, cursor_y);
+    }
+}
+
+app_ui_settings_action_t app_ui_settings_action_at(uint16_t x, uint16_t y)
+{
+    if (y >= 92U && y < 124U)
+    {
+        if (x >= 40U && x < 140U)
+        {
+            return APP_UI_SETTINGS_ACTION_SENSITIVITY_LOW;
+        }
+        if (x >= 148U && x < 248U)
+        {
+            return APP_UI_SETTINGS_ACTION_SENSITIVITY_NORMAL;
+        }
+        if (x >= 256U && x < 356U)
+        {
+            return APP_UI_SETTINGS_ACTION_SENSITIVITY_HIGH;
+        }
+        if (x >= 428U && x < 528U)
+        {
+            return APP_UI_SETTINGS_ACTION_CURSOR_SMALL;
+        }
+        if (x >= 536U && x < 636U)
+        {
+            return APP_UI_SETTINGS_ACTION_CURSOR_MEDIUM;
+        }
+        if (x >= 644U && x < 744U)
+        {
+            return APP_UI_SETTINGS_ACTION_CURSOR_LARGE;
+        }
+    }
+    if (y >= 174U && y < 204U)
+    {
+        if (x >= 40U && x < 200U)
+        {
+            return APP_UI_SETTINGS_ACTION_BRIGHTNESS_25;
+        }
+        if (x >= 220U && x < 380U)
+        {
+            return APP_UI_SETTINGS_ACTION_BRIGHTNESS_50;
+        }
+        if (x >= 400U && x < 560U)
+        {
+            return APP_UI_SETTINGS_ACTION_BRIGHTNESS_75;
+        }
+        if (x >= 580U && x < 740U)
+        {
+            return APP_UI_SETTINGS_ACTION_BRIGHTNESS_100;
+        }
+    }
+    if (y >= 250U && y < 280U)
+    {
+        if (x >= 40U && x < 200U)
+        {
+            return APP_UI_SETTINGS_ACTION_SCREEN_OFF_DISABLED;
+        }
+        if (x >= 220U && x < 380U)
+        {
+            return APP_UI_SETTINGS_ACTION_SCREEN_OFF_30;
+        }
+        if (x >= 400U && x < 560U)
+        {
+            return APP_UI_SETTINGS_ACTION_SCREEN_OFF_60;
+        }
+        if (x >= 580U && x < 740U)
+        {
+            return APP_UI_SETTINGS_ACTION_SCREEN_OFF_120;
+        }
+    }
+    if (y >= 408U && y < 436U)
+    {
+        if (x >= 40U && x < 160U)
+        {
+            return APP_UI_SETTINGS_ACTION_VOLUME_0;
+        }
+        if (x >= 184U && x < 304U)
+        {
+            return APP_UI_SETTINGS_ACTION_VOLUME_25;
+        }
+        if (x >= 328U && x < 448U)
+        {
+            return APP_UI_SETTINGS_ACTION_VOLUME_50;
+        }
+        if (x >= 472U && x < 592U)
+        {
+            return APP_UI_SETTINGS_ACTION_VOLUME_75;
+        }
+        if (x >= 616U && x < 736U)
+        {
+            return APP_UI_SETTINGS_ACTION_VOLUME_100;
+        }
+    }
+    if (y >= 328U && y < 360U)
+    {
+        if (x >= 40U && x < 170U)
+        {
+            return APP_UI_SETTINGS_ACTION_SERIAL_ON;
+        }
+        if (x >= 190U && x < 320U)
+        {
+            return APP_UI_SETTINGS_ACTION_SERIAL_OFF;
+        }
+    }
+    if (y >= 320U && y < 362U)
+    {
+        if (x >= 430U && x < 580U)
+        {
+            return APP_UI_SETTINGS_ACTION_DEFAULTS;
+        }
+        if (x >= 610U && x < 760U)
+        {
+            return APP_UI_SETTINGS_ACTION_SAVE;
+        }
+    }
+    return APP_UI_SETTINGS_ACTION_NONE;
 }
 
 static void app_ui_draw_file_button(uint16_t x,

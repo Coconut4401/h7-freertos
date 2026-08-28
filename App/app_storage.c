@@ -15,19 +15,31 @@
 #define STORAGE_RESPONSE_QUEUE_LENGTH  2U
 #define STORAGE_BINARY_QUEUE_LENGTH    2U
 #define STORAGE_LOG_QUEUE_LENGTH       2U
+#define STORAGE_SETTINGS_QUEUE_LENGTH  2U
+#define STORAGE_AUDIO_QUEUE_LENGTH     2U
 
 #define STORAGE_BINARY_TEMP_PATH       "0:/~DRAW.TMP"
 #define STORAGE_BINARY_BACKUP_PATH     "0:/~DRAW.BAK"
 #define STORAGE_LOG_TEMP_PATH          "0:/~LOG.TMP"
 #define STORAGE_LOG_BACKUP_PATH        "0:/~LOG.BAK"
+#define STORAGE_SETTINGS_TEMP_PATH     "0:/~CFG.TMP"
+#define STORAGE_SETTINGS_BACKUP_PATH   "0:/~CFG.BAK"
 
 static FATFS g_sd_filesystem;
 static QueueHandle_t g_request_queue;
 static QueueHandle_t g_response_queue;
 static QueueHandle_t g_binary_response_queue;
 static QueueHandle_t g_log_response_queue;
+static QueueHandle_t g_settings_response_queue;
+static QueueHandle_t g_audio_response_queue;
 static volatile app_storage_state_t g_storage_state = APP_STORAGE_STATE_STARTING;
 static volatile uint32_t g_capacity_mb;
+static FIL g_audio_file;
+static uint32_t g_audio_bytes_remaining;
+static uint8_t g_audio_file_open;
+
+static app_storage_result_t app_storage_map_result(FRESULT result);
+static FRESULT app_storage_mount(void);
 
 static void app_storage_copy_text(char *destination,
                                   uint32_t destination_size,
@@ -106,9 +118,271 @@ static void app_storage_set_file_type(app_storage_file_t *file)
     {
         app_storage_copy_text(file->type, sizeof(file->type), "TEXT");
     }
+    else if (extension != NULL &&
+             (strcmp(extension, ".WAV") == 0 || strcmp(extension, ".wav") == 0))
+    {
+        app_storage_copy_text(file->type, sizeof(file->type), "AUDIO");
+    }
     else
     {
         app_storage_copy_text(file->type, sizeof(file->type), "DATA");
+    }
+}
+
+static uint16_t app_storage_read_u16(const uint8_t *data)
+{
+    return (uint16_t)((uint16_t)data[0] | ((uint16_t)data[1] << 8U));
+}
+
+static uint32_t app_storage_read_u32(const uint8_t *data)
+{
+    return (uint32_t)data[0] | ((uint32_t)data[1] << 8U) |
+           ((uint32_t)data[2] << 16U) | ((uint32_t)data[3] << 24U);
+}
+
+static uint8_t app_storage_is_wav_name(const char *name)
+{
+    const char *extension;
+
+    extension = strrchr(name, '.');
+    if (extension == NULL || strlen(extension) != 4U)
+    {
+        return 0U;
+    }
+    return ((extension[1] == 'W' || extension[1] == 'w') &&
+            (extension[2] == 'A' || extension[2] == 'a') &&
+            (extension[3] == 'V' || extension[3] == 'v')) ? 1U : 0U;
+}
+
+static uint8_t app_storage_audio_rate_is_supported(uint32_t sample_rate)
+{
+    return (sample_rate == 16000U || sample_rate == 32000U ||
+            sample_rate == 44100U || sample_rate == 48000U) ? 1U : 0U;
+}
+
+static void app_storage_audio_close_file(void)
+{
+    if (g_audio_file_open)
+    {
+        (void)f_close(&g_audio_file);
+        g_audio_file_open = 0U;
+    }
+    g_audio_bytes_remaining = 0U;
+}
+
+static void app_storage_audio_scan(app_storage_audio_response_t *response)
+{
+    DIR directory;
+    FILINFO information;
+    FRESULT result;
+
+    result = f_opendir(&directory, "0:/");
+    if (result == FR_OK)
+    {
+        while (response->track_count < APP_STORAGE_AUDIO_MAX_TRACKS)
+        {
+            result = f_readdir(&directory, &information);
+            if (result != FR_OK || information.fname[0] == '\0')
+            {
+                break;
+            }
+            if ((information.fattrib & AM_DIR) == 0U &&
+                app_storage_is_wav_name(information.fname))
+            {
+                app_storage_copy_text(
+                    response->tracks[response->track_count],
+                    APP_STORAGE_NAME_LENGTH, information.fname);
+                response->track_count++;
+            }
+        }
+        (void)f_closedir(&directory);
+    }
+
+    response->filesystem_result = (uint8_t)result;
+    response->result = app_storage_map_result(result);
+}
+
+static void app_storage_audio_open(const app_storage_request_t *request,
+                                   app_storage_audio_response_t *response)
+{
+    uint8_t header[16];
+    uint8_t format_found;
+    uint8_t data_found;
+    uint16_t audio_format;
+    uint16_t block_align;
+    uint32_t chunk_size;
+    uint32_t next_position;
+    UINT transferred;
+    FRESULT result;
+    char path[APP_STORAGE_PATH_LENGTH];
+
+    if (!app_storage_name_is_valid(request->name) ||
+        !app_storage_is_wav_name(request->name))
+    {
+        response->result = APP_STORAGE_RESULT_INVALID_NAME;
+        return;
+    }
+
+    app_storage_audio_close_file();
+    app_storage_make_path(path, request->name);
+    result = f_open(&g_audio_file, path, FA_READ);
+    if (result != FR_OK)
+    {
+        response->filesystem_result = (uint8_t)result;
+        response->result = app_storage_map_result(result);
+        return;
+    }
+    g_audio_file_open = 1U;
+
+    transferred = 0U;
+    result = f_read(&g_audio_file, header, 12U, &transferred);
+    if (result != FR_OK || transferred != 12U ||
+        memcmp(&header[0], "RIFF", 4U) != 0 ||
+        memcmp(&header[8], "WAVE", 4U) != 0)
+    {
+        result = (result == FR_OK) ? FR_INVALID_OBJECT : result;
+        goto audio_open_failed;
+    }
+
+    format_found = 0U;
+    data_found = 0U;
+    audio_format = 0U;
+    block_align = 0U;
+    while ((uint32_t)f_tell(&g_audio_file) + 8U <=
+           (uint32_t)f_size(&g_audio_file))
+    {
+        result = f_read(&g_audio_file, header, 8U, &transferred);
+        if (result != FR_OK || transferred != 8U)
+        {
+            break;
+        }
+        chunk_size = app_storage_read_u32(&header[4]);
+        next_position = (uint32_t)f_tell(&g_audio_file) +
+                        chunk_size + (chunk_size & 1U);
+        if (memcmp(header, "fmt ", 4U) == 0 && chunk_size >= 16U)
+        {
+            result = f_read(&g_audio_file, header, 16U, &transferred);
+            if (result != FR_OK || transferred != 16U)
+            {
+                break;
+            }
+            audio_format = app_storage_read_u16(&header[0]);
+            response->channels = (uint8_t)app_storage_read_u16(&header[2]);
+            response->sample_rate = app_storage_read_u32(&header[4]);
+            block_align = app_storage_read_u16(&header[12]);
+            response->bits_per_sample =
+                (uint8_t)app_storage_read_u16(&header[14]);
+            format_found = 1U;
+        }
+        else if (memcmp(header, "data", 4U) == 0 && format_found)
+        {
+            response->data_size = chunk_size;
+            g_audio_bytes_remaining = chunk_size;
+            data_found = 1U;
+            break;
+        }
+        result = f_lseek(&g_audio_file, next_position);
+        if (result != FR_OK)
+        {
+            break;
+        }
+    }
+
+    if (result != FR_OK || !format_found || !data_found ||
+        audio_format != 1U ||
+        (response->channels != 1U && response->channels != 2U) ||
+        response->bits_per_sample != 16U ||
+        block_align != (uint16_t)(response->channels * 2U) ||
+        !app_storage_audio_rate_is_supported(response->sample_rate))
+    {
+        result = (result == FR_OK) ? FR_INVALID_OBJECT : result;
+        goto audio_open_failed;
+    }
+
+    response->filesystem_result = (uint8_t)FR_OK;
+    response->result = APP_STORAGE_RESULT_OK;
+    return;
+
+audio_open_failed:
+    app_storage_audio_close_file();
+    response->filesystem_result = (uint8_t)result;
+    response->result = app_storage_map_result(result);
+}
+
+static void app_storage_audio_read(const app_storage_request_t *request,
+                                   app_storage_audio_response_t *response)
+{
+    UINT transferred;
+    uint32_t requested;
+    FRESULT result;
+
+    if (!g_audio_file_open || request->binary_data == NULL ||
+        request->binary_capacity == 0U)
+    {
+        response->result = APP_STORAGE_RESULT_NOT_READY;
+        return;
+    }
+
+    requested = request->binary_capacity;
+    if (requested > g_audio_bytes_remaining)
+    {
+        requested = g_audio_bytes_remaining;
+    }
+    transferred = 0U;
+    result = f_read(&g_audio_file, request->binary_data,
+                    requested, &transferred);
+    if (result == FR_OK)
+    {
+        g_audio_bytes_remaining -= transferred;
+        response->data_length = transferred;
+        response->end_of_file = (g_audio_bytes_remaining == 0U) ? 1U : 0U;
+    }
+    else
+    {
+        app_storage_audio_close_file();
+    }
+    response->filesystem_result = (uint8_t)result;
+    response->result = app_storage_map_result(result);
+}
+
+static void app_storage_process_audio(const app_storage_request_t *request,
+                                      app_storage_audio_response_t *response)
+{
+    FRESULT mount_result;
+
+    memset(response, 0, sizeof(*response));
+    response->operation = request->operation;
+    if (g_storage_state != APP_STORAGE_STATE_READY)
+    {
+        mount_result = app_storage_mount();
+        if (mount_result != FR_OK)
+        {
+            response->filesystem_result = (uint8_t)mount_result;
+            response->result = APP_STORAGE_RESULT_NOT_READY;
+            return;
+        }
+    }
+
+    if (request->operation == APP_STORAGE_OP_AUDIO_SCAN)
+    {
+        app_storage_audio_scan(response);
+    }
+    else if (request->operation == APP_STORAGE_OP_AUDIO_OPEN)
+    {
+        app_storage_audio_open(request, response);
+    }
+    else if (request->operation == APP_STORAGE_OP_AUDIO_READ)
+    {
+        app_storage_audio_read(request, response);
+    }
+    else if (request->operation == APP_STORAGE_OP_AUDIO_CLOSE)
+    {
+        app_storage_audio_close_file();
+        response->result = APP_STORAGE_RESULT_OK;
+    }
+    else
+    {
+        response->result = APP_STORAGE_RESULT_IO_ERROR;
     }
 }
 
@@ -437,6 +711,8 @@ static void app_storage_read_binary(const app_storage_request_t *request,
     UINT transferred;
     uint32_t file_size;
     char path[APP_STORAGE_PATH_LENGTH];
+    const char *temporary_path;
+    const char *backup_path;
 
     if (!app_storage_name_is_valid(request->name) ||
         request->binary_data == NULL || request->binary_capacity == 0U)
@@ -445,10 +721,21 @@ static void app_storage_read_binary(const app_storage_request_t *request,
         return;
     }
 
+    if (request->operation == APP_STORAGE_OP_READ_SETTINGS)
+    {
+        temporary_path = STORAGE_SETTINGS_TEMP_PATH;
+        backup_path = STORAGE_SETTINGS_BACKUP_PATH;
+    }
+    else
+    {
+        temporary_path = STORAGE_BINARY_TEMP_PATH;
+        backup_path = STORAGE_BINARY_BACKUP_PATH;
+    }
+
     app_storage_make_path(path, request->name);
     result = app_storage_recover_binary_target(path,
-                                               STORAGE_BINARY_TEMP_PATH,
-                                               STORAGE_BINARY_BACKUP_PATH);
+                                               temporary_path,
+                                               backup_path);
     if (result != FR_OK)
     {
         response->filesystem_result = (uint8_t)result;
@@ -503,6 +790,11 @@ static void app_storage_write_binary(const app_storage_request_t *request,
     {
         temporary_path = STORAGE_LOG_TEMP_PATH;
         backup_path = STORAGE_LOG_BACKUP_PATH;
+    }
+    else if (request->operation == APP_STORAGE_OP_WRITE_SETTINGS)
+    {
+        temporary_path = STORAGE_SETTINGS_TEMP_PATH;
+        backup_path = STORAGE_SETTINGS_BACKUP_PATH;
     }
     else
     {
@@ -587,7 +879,8 @@ static void app_storage_process_binary(const app_storage_request_t *request,
         }
     }
 
-    if (request->operation == APP_STORAGE_OP_READ_BINARY)
+    if (request->operation == APP_STORAGE_OP_READ_BINARY ||
+        request->operation == APP_STORAGE_OP_READ_SETTINGS)
     {
         app_storage_read_binary(request, response);
     }
@@ -654,8 +947,13 @@ BaseType_t app_storage_init(void)
                                     sizeof(app_storage_binary_response_t));
     g_log_response_queue = xQueueCreate(STORAGE_LOG_QUEUE_LENGTH,
                                     sizeof(app_storage_binary_response_t));
+    g_settings_response_queue = xQueueCreate(STORAGE_SETTINGS_QUEUE_LENGTH,
+                                     sizeof(app_storage_binary_response_t));
+    g_audio_response_queue = xQueueCreate(STORAGE_AUDIO_QUEUE_LENGTH,
+                                     sizeof(app_storage_audio_response_t));
     if (g_request_queue == NULL || g_response_queue == NULL ||
-        g_binary_response_queue == NULL || g_log_response_queue == NULL)
+        g_binary_response_queue == NULL || g_log_response_queue == NULL ||
+        g_settings_response_queue == NULL || g_audio_response_queue == NULL)
     {
         return pdFAIL;
     }
@@ -664,6 +962,8 @@ BaseType_t app_storage_init(void)
     vQueueAddToRegistry(g_response_queue, "StorageResponses");
     vQueueAddToRegistry(g_binary_response_queue, "StorageBinaryResponses");
     vQueueAddToRegistry(g_log_response_queue, "StorageLogResponses");
+    vQueueAddToRegistry(g_settings_response_queue, "StorageSettingsResponses");
+    vQueueAddToRegistry(g_audio_response_queue, "StorageAudioResponses");
     return pdPASS;
 }
 
@@ -703,6 +1003,24 @@ BaseType_t app_storage_receive_log(app_storage_binary_response_t *response)
     return xQueueReceive(g_log_response_queue, response, 0U);
 }
 
+BaseType_t app_storage_receive_settings(app_storage_binary_response_t *response)
+{
+    if (response == NULL || g_settings_response_queue == NULL)
+    {
+        return pdFAIL;
+    }
+    return xQueueReceive(g_settings_response_queue, response, 0U);
+}
+
+BaseType_t app_storage_receive_audio(app_storage_audio_response_t *response)
+{
+    if (response == NULL || g_audio_response_queue == NULL)
+    {
+        return pdFAIL;
+    }
+    return xQueueReceive(g_audio_response_queue, response, 0U);
+}
+
 app_storage_state_t app_storage_get_state(void)
 {
     return g_storage_state;
@@ -717,6 +1035,7 @@ void AppStorageTask(void *argument)
 {
     static app_storage_response_t response;
     app_storage_binary_response_t binary_response;
+    app_storage_audio_response_t audio_response;
     app_storage_request_t request;
     FRESULT result;
 
@@ -740,7 +1059,16 @@ void AppStorageTask(void *argument)
     {
         if (xQueueReceive(g_request_queue, &request, portMAX_DELAY) == pdPASS)
         {
-            if (request.operation == APP_STORAGE_OP_READ_BINARY ||
+            if (request.operation == APP_STORAGE_OP_AUDIO_SCAN ||
+                request.operation == APP_STORAGE_OP_AUDIO_OPEN ||
+                request.operation == APP_STORAGE_OP_AUDIO_READ ||
+                request.operation == APP_STORAGE_OP_AUDIO_CLOSE)
+            {
+                app_storage_process_audio(&request, &audio_response);
+                xQueueSend(g_audio_response_queue, &audio_response,
+                           portMAX_DELAY);
+            }
+            else if (request.operation == APP_STORAGE_OP_READ_BINARY ||
                 request.operation == APP_STORAGE_OP_WRITE_BINARY)
             {
                 app_storage_process_binary(&request, &binary_response);
@@ -751,6 +1079,13 @@ void AppStorageTask(void *argument)
             {
                 app_storage_process_binary(&request, &binary_response);
                 xQueueSend(g_log_response_queue, &binary_response,
+                           portMAX_DELAY);
+            }
+            else if (request.operation == APP_STORAGE_OP_READ_SETTINGS ||
+                     request.operation == APP_STORAGE_OP_WRITE_SETTINGS)
+            {
+                app_storage_process_binary(&request, &binary_response);
+                xQueueSend(g_settings_response_queue, &binary_response,
                            portMAX_DELAY);
             }
             else

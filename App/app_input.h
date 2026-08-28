@@ -10,6 +10,10 @@
 #define APP_LCD_HEIGHT           480U
 #define APP_INPUT_QUEUE_LENGTH   32U
 
+#define APP_INPUT_SENSITIVITY_LOW       1U
+#define APP_INPUT_SENSITIVITY_NORMAL    2U
+#define APP_INPUT_SENSITIVITY_HIGH      3U
+
 typedef enum
 {
     APP_INPUT_EVENT_DOWN = 0,
@@ -39,5 +43,7 @@ typedef struct
 
 void AppInputTask(void *argument);
 void app_input_get_stats(app_input_stats_t *stats);
+void app_input_set_cursor_sensitivity(uint8_t sensitivity);
+uint8_t app_input_get_cursor_sensitivity(void);
 
 #endif

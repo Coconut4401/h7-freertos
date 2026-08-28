@@ -4,6 +4,7 @@
 
 #include "./BSP/LED/led.h"
 #include "app_input.h"
+#include "app_settings.h"
 
 static app_monitor_snapshot_t g_monitor_snapshot;
 
@@ -64,16 +65,19 @@ void AppMonitorTask(void *argument)
         g_monitor_snapshot = snapshot;
         taskEXIT_CRITICAL();
 
-        printf("RTOS tick=%lu heap=%u queue=%u/%u input=%lu drop=%lu stack(I/G/M)=%u/%u/%u\r\n",
-               (unsigned long)xTaskGetTickCount(),
-               (unsigned int)snapshot.free_heap_bytes,
-               (unsigned int)queue_depth,
-               (unsigned int)queue_high_water,
-               (unsigned long)input_stats.sent_count,
-               (unsigned long)input_stats.dropped_count,
-               (unsigned int)input_stack,
-               (unsigned int)runtime_stack,
-               (unsigned int)monitor_stack);
+        if (app_settings_get_serial_output_enabled())
+        {
+            printf("RTOS tick=%lu heap=%u queue=%u/%u input=%lu drop=%lu stack(I/G/M)=%u/%u/%u\r\n",
+                   (unsigned long)xTaskGetTickCount(),
+                   (unsigned int)snapshot.free_heap_bytes,
+                   (unsigned int)queue_depth,
+                   (unsigned int)queue_high_water,
+                   (unsigned long)input_stats.sent_count,
+                   (unsigned long)input_stats.dropped_count,
+                   (unsigned int)input_stack,
+                   (unsigned int)runtime_stack,
+                   (unsigned int)monitor_stack);
+        }
 
         vTaskDelayUntil(&last_wake, pdMS_TO_TICKS(500U));
     }

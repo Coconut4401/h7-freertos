@@ -17,6 +17,7 @@
 #include "app_runtime.h"
 #include "app_monitor.h"
 #include "app_storage.h"
+#include "app_audio.h"
 
 #define LCD_WIDTH              800U
 #define LCD_HEIGHT             480U
@@ -178,6 +179,10 @@ static void app_tasks_start(void)
     {
         fatal_blink(4U);
     }
+    if (app_audio_init() != pdPASS)
+    {
+        fatal_blink(4U);
+    }
 
     g_touch_queue = xQueueCreate(APP_INPUT_QUEUE_LENGTH,
                                  sizeof(app_input_event_t));
@@ -216,7 +221,13 @@ static void app_tasks_start(void)
     }
 
     if (xTaskCreate(AppStorageTask, "StorageTask", 1024U,
-                    NULL, 2U, NULL) != pdPASS)
+                    NULL, 4U, NULL) != pdPASS)
+    {
+        fatal_blink(4U);
+    }
+
+    if (xTaskCreate(AppAudioTask, "AudioTask", 1024U,
+                    NULL, 3U, NULL) != pdPASS)
     {
         fatal_blink(4U);
     }

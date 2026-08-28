@@ -455,6 +455,16 @@
               <FilePath>..\..\App\app_storage.c</FilePath>
             </File>
             <File>
+              <FileName>app_audio.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\App\app_audio.c</FilePath>
+            </File>
+            <File>
+              <FileName>app_music.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\App\app_music.c</FilePath>
+            </File>
+            <File>
               <FileName>app_storage.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\..\App\app_storage.h</FilePath>
@@ -488,6 +498,36 @@
               <FileName>app_logs.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\..\App\app_logs.h</FilePath>
+            </File>
+            <File>
+              <FileName>app_settings.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\App\app_settings.c</FilePath>
+            </File>
+            <File>
+              <FileName>app_settings.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\App\app_settings.h</FilePath>
+            </File>
+            <File>
+              <FileName>app_screen.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\App\app_screen.c</FilePath>
+            </File>
+            <File>
+              <FileName>app_screen.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\App\app_screen.h</FilePath>
+            </File>
+            <File>
+              <FileName>app_rtc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\App\app_rtc.c</FilePath>
+            </File>
+            <File>
+              <FileName>app_rtc.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\App\app_rtc.h</FilePath>
             </File>
           </Files>
         </Group>

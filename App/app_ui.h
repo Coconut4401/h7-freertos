@@ -6,10 +6,15 @@
 #include "app_logs.h"
 #include "app_monitor.h"
 #include "app_storage.h"
+#include "app_audio.h"
 
 #define APP_UI_KEY_NONE    (-1)
 #define APP_UI_KEY_CLEAR   10
 #define APP_UI_KEY_ENTER   11
+
+#define APP_UI_CURSOR_SIZE_SMALL     1U
+#define APP_UI_CURSOR_SIZE_MEDIUM    2U
+#define APP_UI_CURSOR_SIZE_LARGE     3U
 
 typedef enum
 {
@@ -33,6 +38,45 @@ typedef enum
     APP_UI_LOGS_ACTION_PREVIOUS,
     APP_UI_LOGS_ACTION_NEXT
 } app_ui_logs_action_t;
+
+typedef enum
+{
+    APP_UI_SETTINGS_ACTION_NONE = 0,
+    APP_UI_SETTINGS_ACTION_SENSITIVITY_LOW,
+    APP_UI_SETTINGS_ACTION_SENSITIVITY_NORMAL,
+    APP_UI_SETTINGS_ACTION_SENSITIVITY_HIGH,
+    APP_UI_SETTINGS_ACTION_CURSOR_SMALL,
+    APP_UI_SETTINGS_ACTION_CURSOR_MEDIUM,
+    APP_UI_SETTINGS_ACTION_CURSOR_LARGE,
+    APP_UI_SETTINGS_ACTION_BRIGHTNESS_25,
+    APP_UI_SETTINGS_ACTION_BRIGHTNESS_50,
+    APP_UI_SETTINGS_ACTION_BRIGHTNESS_75,
+    APP_UI_SETTINGS_ACTION_BRIGHTNESS_100,
+    APP_UI_SETTINGS_ACTION_VOLUME_0,
+    APP_UI_SETTINGS_ACTION_VOLUME_25,
+    APP_UI_SETTINGS_ACTION_VOLUME_50,
+    APP_UI_SETTINGS_ACTION_VOLUME_75,
+    APP_UI_SETTINGS_ACTION_VOLUME_100,
+    APP_UI_SETTINGS_ACTION_SCREEN_OFF_DISABLED,
+    APP_UI_SETTINGS_ACTION_SCREEN_OFF_30,
+    APP_UI_SETTINGS_ACTION_SCREEN_OFF_60,
+    APP_UI_SETTINGS_ACTION_SCREEN_OFF_120,
+    APP_UI_SETTINGS_ACTION_SERIAL_ON,
+    APP_UI_SETTINGS_ACTION_SERIAL_OFF,
+    APP_UI_SETTINGS_ACTION_DEFAULTS,
+    APP_UI_SETTINGS_ACTION_SAVE
+} app_ui_settings_action_t;
+
+typedef enum
+{
+    APP_UI_MUSIC_ACTION_NONE = 0,
+    APP_UI_MUSIC_ACTION_PREVIOUS,
+    APP_UI_MUSIC_ACTION_PLAY_PAUSE,
+    APP_UI_MUSIC_ACTION_STOP,
+    APP_UI_MUSIC_ACTION_NEXT,
+    APP_UI_MUSIC_ACTION_TEST_TONE,
+    APP_UI_MUSIC_ACTION_RESCAN
+} app_ui_music_action_t;
 
 #define APP_UI_DRAW_CANVAS_LEFT    28U
 #define APP_UI_DRAW_CANVAS_TOP     70U
@@ -81,11 +125,18 @@ void app_ui_show_desktop(uint8_t touch_available,
                          uint32_t uptime_seconds);
 void app_ui_update_desktop_time(uint32_t uptime_seconds);
 void app_ui_move_cursor(uint16_t x, uint16_t y);
+void app_ui_set_cursor_size(uint8_t cursor_size);
 int8_t app_ui_desktop_icon_at(uint16_t x, uint16_t y);
 void app_ui_select_desktop_icon(int8_t icon_index);
+uint8_t app_ui_desktop_sleep_button_at(uint16_t x, uint16_t y);
 
 uint8_t app_ui_back_button_at(uint16_t x, uint16_t y);
+uint8_t app_ui_application_sleep_button_at(uint16_t x, uint16_t y);
 void app_ui_show_application(app_ui_application_t application);
+void app_ui_show_music(const app_audio_snapshot_t *snapshot);
+void app_ui_update_music(const app_audio_snapshot_t *snapshot,
+                         const app_audio_snapshot_t *previous);
+app_ui_music_action_t app_ui_music_action_at(uint16_t x, uint16_t y);
 void app_ui_show_draw(uint16_t selected_color,
                       const char *status,
                       uint8_t busy);
@@ -105,6 +156,16 @@ void app_ui_show_logs(const app_log_entry_t *entries,
                       uint8_t busy,
                       uint8_t clear_armed);
 app_ui_logs_action_t app_ui_logs_action_at(uint16_t x, uint16_t y);
+void app_ui_show_settings(uint8_t cursor_sensitivity,
+                           uint8_t cursor_size,
+                           uint8_t brightness_percent,
+                           uint8_t volume_percent,
+                           uint32_t idle_timeout_seconds,
+                          uint8_t serial_output_enabled,
+                          uint8_t dirty,
+                          const char *status,
+                          uint8_t busy);
+app_ui_settings_action_t app_ui_settings_action_at(uint16_t x, uint16_t y);
 void app_ui_show_files_list(const app_storage_file_t *files,
                             uint8_t file_count,
                             uint8_t page,
