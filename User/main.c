@@ -54,7 +54,7 @@ static uint8_t at24c02_probe(void)
 }
 
 static void touch_i2c_diagnose(void)
-{
+                                 {
     uint8_t address;
 
     touch_scan_count = 0U;
@@ -227,7 +227,7 @@ static void app_tasks_start(void)
     }
 
     if (xTaskCreate(AppAudioTask, "AudioTask", 1024U,
-                    NULL, 3U, NULL) != pdPASS)
+                    NULL, 5U, NULL) != pdPASS)
     {
         fatal_blink(4U);
     }

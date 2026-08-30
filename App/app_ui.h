@@ -5,6 +5,7 @@
 
 #include "app_logs.h"
 #include "app_monitor.h"
+#include "app_rtc.h"
 #include "app_storage.h"
 #include "app_audio.h"
 
@@ -63,9 +64,29 @@ typedef enum
     APP_UI_SETTINGS_ACTION_SCREEN_OFF_120,
     APP_UI_SETTINGS_ACTION_SERIAL_ON,
     APP_UI_SETTINGS_ACTION_SERIAL_OFF,
+    APP_UI_SETTINGS_ACTION_TIME,
     APP_UI_SETTINGS_ACTION_DEFAULTS,
     APP_UI_SETTINGS_ACTION_SAVE
 } app_ui_settings_action_t;
+
+typedef enum
+{
+    APP_UI_TIME_ACTION_NONE = 0,
+    APP_UI_TIME_ACTION_YEAR_DOWN,
+    APP_UI_TIME_ACTION_YEAR_UP,
+    APP_UI_TIME_ACTION_MONTH_DOWN,
+    APP_UI_TIME_ACTION_MONTH_UP,
+    APP_UI_TIME_ACTION_DATE_DOWN,
+    APP_UI_TIME_ACTION_DATE_UP,
+    APP_UI_TIME_ACTION_HOUR_DOWN,
+    APP_UI_TIME_ACTION_HOUR_UP,
+    APP_UI_TIME_ACTION_MINUTE_DOWN,
+    APP_UI_TIME_ACTION_MINUTE_UP,
+    APP_UI_TIME_ACTION_SECOND_DOWN,
+    APP_UI_TIME_ACTION_SECOND_UP,
+    APP_UI_TIME_ACTION_CANCEL,
+    APP_UI_TIME_ACTION_APPLY
+} app_ui_time_action_t;
 
 typedef enum
 {
@@ -124,6 +145,8 @@ void app_ui_show_desktop(uint8_t touch_available,
                          const char *controller_id,
                          uint32_t uptime_seconds);
 void app_ui_update_desktop_time(uint32_t uptime_seconds);
+void app_ui_update_desktop_mouse(uint8_t connection_known,
+                                 uint8_t mouse_connected);
 void app_ui_move_cursor(uint16_t x, uint16_t y);
 void app_ui_set_cursor_size(uint8_t cursor_size);
 int8_t app_ui_desktop_icon_at(uint16_t x, uint16_t y);
@@ -166,6 +189,9 @@ void app_ui_show_settings(uint8_t cursor_sensitivity,
                           const char *status,
                           uint8_t busy);
 app_ui_settings_action_t app_ui_settings_action_at(uint16_t x, uint16_t y);
+void app_ui_show_time_settings(const app_rtc_datetime_t *datetime,
+                               uint8_t rtc_available);
+app_ui_time_action_t app_ui_time_action_at(uint16_t x, uint16_t y);
 void app_ui_show_files_list(const app_storage_file_t *files,
                             uint8_t file_count,
                             uint8_t page,

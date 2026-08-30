@@ -526,14 +526,16 @@ void app_ui_show_desktop(uint8_t touch_available,
     app_ui_show_text(18U, 110U, 145U, 16U, 16U,
                      touch_available ? "TOUCH ONLINE" : "TOUCH OFFLINE",
                      touch_available ? GREEN : RED);
-    app_ui_show_text(18U, 144U, 65U, 16U, 16U, "CTRL:", UI_COLOR_MUTED);
+    app_ui_show_text(18U, 144U, 145U, 16U, 16U,
+                     "MOUSE WAITING", YELLOW);
+    app_ui_show_text(18U, 178U, 65U, 16U, 16U, "CTRL:", UI_COLOR_MUTED);
     if (controller_id != NULL)
     {
-        app_ui_show_text(18U, 166U, 145U, 16U, 16U,
+        app_ui_show_text(18U, 200U, 145U, 16U, 16U,
                          controller_id, WHITE);
     }
-    app_ui_show_text(18U, 216U, 145U, 16U, 16U, "APPS: 6", WHITE);
-    app_ui_show_text(18U, 250U, 145U, 16U, 16U, "CURSOR: ACTIVE", WHITE);
+    app_ui_show_text(18U, 240U, 145U, 16U, 16U, "APPS: 6", WHITE);
+    app_ui_show_text(18U, 270U, 145U, 16U, 16U, "CURSOR: ACTIVE", WHITE);
     lcd_fill(18U, 306U, 162U, 350U, UI_COLOR_BUTTON);
     lcd_draw_rectangle(18U, 306U, 162U, 350U, WHITE);
     app_ui_show_centered(18U, 320U, 145U, 16U, "SLEEP", WHITE);
@@ -564,6 +566,43 @@ void app_ui_update_desktop_time(uint32_t uptime_seconds)
     lcd_fill(652U, 8U, 790U, 39U, UI_COLOR_TOP);
     app_ui_show_text(662U, 12U, 128U, 24U, 24U, time_text, WHITE);
 
+    if (restore_cursor)
+    {
+        app_ui_cursor_show(cursor_x, cursor_y);
+    }
+}
+
+void app_ui_update_desktop_mouse(uint8_t connection_known,
+                                 uint8_t mouse_connected)
+{
+    const char *status;
+    uint16_t color;
+    uint8_t restore_cursor;
+    uint16_t cursor_x;
+    uint16_t cursor_y;
+
+    if (!connection_known)
+    {
+        status = "MOUSE WAITING";
+        color = YELLOW;
+    }
+    else if (mouse_connected)
+    {
+        status = "MOUSE ONLINE";
+        color = GREEN;
+    }
+    else
+    {
+        status = "MOUSE OFFLINE";
+        color = RED;
+    }
+
+    restore_cursor = g_cursor_visible;
+    cursor_x = g_cursor_x;
+    cursor_y = g_cursor_y;
+    app_ui_cursor_hide();
+    lcd_fill(18U, 140U, 162U, 163U, UI_COLOR_PANEL);
+    app_ui_show_text(18U, 144U, 145U, 16U, 16U, status, color);
     if (restore_cursor)
     {
         app_ui_cursor_show(cursor_x, cursor_y);
@@ -1009,6 +1048,15 @@ void app_ui_update_draw_controls(uint16_t selected_color,
                                  const char *status,
                                  uint8_t busy)
 {
+    uint8_t restore_cursor;
+    uint16_t cursor_x;
+    uint16_t cursor_y;
+
+    restore_cursor = g_cursor_visible;
+    cursor_x = g_cursor_x;
+    cursor_y = g_cursor_y;
+    app_ui_cursor_hide();
+
     app_ui_draw_draw_button(70U, "CLEAR", !busy);
     app_ui_draw_draw_button(128U, "SAVE", !busy);
     app_ui_draw_draw_button(186U, "OPEN", !busy);
@@ -1032,12 +1080,18 @@ void app_ui_update_draw_controls(uint16_t selected_color,
         app_ui_show_text(200U, 456U, 570U, 16U, 16U,
                          status != NULL ? status : "READY", WHITE);
     }
+
+    if (restore_cursor)
+    {
+        app_ui_cursor_show(cursor_x, cursor_y);
+    }
 }
 
 void app_ui_show_draw(uint16_t selected_color,
                       const char *status,
                       uint8_t busy)
 {
+    app_ui_cursor_hide();
     app_ui_draw_application_header("DRAW");
     lcd_fill(24U, 66U, 616U, 426U, WHITE);
     lcd_draw_rectangle(24U, 66U, 616U, 426U, UI_COLOR_TOP);
@@ -1050,9 +1104,50 @@ void app_ui_draw_stroke(uint16_t x1,
                         uint16_t y2,
                         uint16_t color)
 {
+    uint8_t restore_cursor;
+    uint16_t cursor_x;
+    uint16_t cursor_y;
+    int32_t delta_x;
+    int32_t delta_y;
+    uint32_t steps;
+    uint32_t step;
+    uint16_t x;
+    uint16_t y;
+
+    restore_cursor = g_cursor_visible;
+    cursor_x = g_cursor_x;
+    cursor_y = g_cursor_y;
+    app_ui_cursor_hide();
+
     lcd_draw_line(x1, y1, x2, y2, color);
-    lcd_fill_circle(x1, y1, 2U, color);
-    lcd_fill_circle(x2, y2, 2U, color);
+
+    /* Fill the brush along the segment, not only at its endpoints.  Input
+       reports can be several pixels apart during fast movement; endpoint
+       dots otherwise leave a visibly thin, dotted-looking stroke. */
+    delta_x = (int32_t)x2 - (int32_t)x1;
+    delta_y = (int32_t)y2 - (int32_t)y1;
+    steps = (uint32_t)((delta_x < 0) ? -delta_x : delta_x);
+    if ((uint32_t)((delta_y < 0) ? -delta_y : delta_y) > steps)
+    {
+        steps = (uint32_t)((delta_y < 0) ? -delta_y : delta_y);
+    }
+    for (step = 0U; step <= steps; step += 2U)
+    {
+        x = (uint16_t)((int32_t)x1 +
+                       (delta_x * (int32_t)step) / (int32_t)((steps == 0U) ? 1U : steps));
+        y = (uint16_t)((int32_t)y1 +
+                       (delta_y * (int32_t)step) / (int32_t)((steps == 0U) ? 1U : steps));
+        lcd_fill_circle(x, y, 2U, color);
+    }
+    if (steps > 0U && (step - 2U) != steps)
+    {
+        lcd_fill_circle(x2, y2, 2U, color);
+    }
+
+    if (restore_cursor)
+    {
+        app_ui_cursor_show(cursor_x, cursor_y);
+    }
 }
 
 app_ui_draw_action_t app_ui_draw_action_at(uint16_t x, uint16_t y)
@@ -1296,6 +1391,137 @@ static void app_ui_draw_settings_button(uint16_t x,
                          width, 16U, label, text_color);
 }
 
+static void app_ui_draw_time_field(uint16_t x,
+                                   uint16_t y,
+                                   const char *label,
+                                   uint32_t value,
+                                   uint8_t digits,
+                                   uint8_t enabled)
+{
+    lcd_fill(x, y, (uint16_t)(x + 239U), (uint16_t)(y + 119U),
+             UI_COLOR_PANEL_DARK);
+    lcd_draw_rectangle(x, y, (uint16_t)(x + 239U),
+                       (uint16_t)(y + 119U), UI_COLOR_MUTED);
+    app_ui_show_centered(x, (uint16_t)(y + 12U), 240U, 16U,
+                         label, UI_COLOR_MUTED);
+    app_ui_draw_settings_button((uint16_t)(x + 12U),
+                                (uint16_t)(y + 52U),
+                                56U, 44U, "-", 0U, enabled);
+    app_ui_show_number((uint16_t)(x + 92U), (uint16_t)(y + 61U),
+                       value, digits, 24U,
+                       enabled ? WHITE : UI_COLOR_MUTED);
+    app_ui_draw_settings_button((uint16_t)(x + 172U),
+                                (uint16_t)(y + 52U),
+                                56U, 44U, "+", 0U, enabled);
+}
+
+void app_ui_show_time_settings(const app_rtc_datetime_t *datetime,
+                               uint8_t rtc_available)
+{
+    uint8_t restore_cursor;
+    uint16_t cursor_x;
+    uint16_t cursor_y;
+    app_rtc_datetime_t value;
+
+    restore_cursor = g_cursor_visible;
+    cursor_x = g_cursor_x;
+    cursor_y = g_cursor_y;
+    app_ui_cursor_hide();
+    app_ui_draw_application_header("DATE AND TIME");
+
+    memset(&value, 0, sizeof(value));
+    if (datetime != NULL)
+    {
+        value = *datetime;
+    }
+
+    app_ui_draw_time_field(24U, 64U, "YEAR", value.year, 4U,
+                           rtc_available);
+    app_ui_draw_time_field(280U, 64U, "MONTH", value.month, 2U,
+                           rtc_available);
+    app_ui_draw_time_field(536U, 64U, "DAY", value.date, 2U,
+                           rtc_available);
+    app_ui_draw_time_field(24U, 198U, "HOUR", value.hour, 2U,
+                           rtc_available);
+    app_ui_draw_time_field(280U, 198U, "MINUTE", value.minute, 2U,
+                           rtc_available);
+    app_ui_draw_time_field(536U, 198U, "SECOND", value.second, 2U,
+                           rtc_available);
+
+    app_ui_draw_settings_button(214U, 346U, 170U, 46U, "CANCEL",
+                                0U, 1U);
+    app_ui_draw_settings_button(416U, 346U, 170U, 46U, "APPLY",
+                                0U, rtc_available);
+    app_ui_show_centered(190U, 416U, 420U, 16U,
+                         rtc_available ? "DS3231 READY" : "DS3231 OFFLINE",
+                         rtc_available ? GREEN : RED);
+
+    if (restore_cursor)
+    {
+        app_ui_cursor_show(cursor_x, cursor_y);
+    }
+}
+
+app_ui_time_action_t app_ui_time_action_at(uint16_t x, uint16_t y)
+{
+    uint8_t column;
+    uint8_t row;
+    uint16_t field_x;
+    uint16_t field_y;
+    static const app_ui_time_action_t down_actions[2][3] =
+    {
+        {APP_UI_TIME_ACTION_YEAR_DOWN,
+         APP_UI_TIME_ACTION_MONTH_DOWN,
+         APP_UI_TIME_ACTION_DATE_DOWN},
+        {APP_UI_TIME_ACTION_HOUR_DOWN,
+         APP_UI_TIME_ACTION_MINUTE_DOWN,
+         APP_UI_TIME_ACTION_SECOND_DOWN}
+    };
+    static const app_ui_time_action_t up_actions[2][3] =
+    {
+        {APP_UI_TIME_ACTION_YEAR_UP,
+         APP_UI_TIME_ACTION_MONTH_UP,
+         APP_UI_TIME_ACTION_DATE_UP},
+        {APP_UI_TIME_ACTION_HOUR_UP,
+         APP_UI_TIME_ACTION_MINUTE_UP,
+         APP_UI_TIME_ACTION_SECOND_UP}
+    };
+
+    for (row = 0U; row < 2U; row++)
+    {
+        field_y = row == 0U ? 64U : 198U;
+        if (y < field_y + 52U || y >= field_y + 96U)
+        {
+            continue;
+        }
+        for (column = 0U; column < 3U; column++)
+        {
+            field_x = (uint16_t)(24U + column * 256U);
+            if (x >= field_x + 12U && x < field_x + 68U)
+            {
+                return down_actions[row][column];
+            }
+            if (x >= field_x + 172U && x < field_x + 228U)
+            {
+                return up_actions[row][column];
+            }
+        }
+    }
+
+    if (y >= 346U && y < 392U)
+    {
+        if (x >= 214U && x < 384U)
+        {
+            return APP_UI_TIME_ACTION_CANCEL;
+        }
+        if (x >= 416U && x < 586U)
+        {
+            return APP_UI_TIME_ACTION_APPLY;
+        }
+    }
+    return APP_UI_TIME_ACTION_NONE;
+}
+
 void app_ui_show_settings(uint8_t cursor_sensitivity,
                           uint8_t cursor_size,
                           uint8_t brightness_percent,
@@ -1381,9 +1607,11 @@ void app_ui_show_settings(uint8_t cursor_sensitivity,
 
     app_ui_show_text(428U, 304U, 160U, 16U, 16U,
                      "ACTIONS", UI_COLOR_MUTED);
-    app_ui_draw_settings_button(430U, 320U, 150U, 42U, "DEFAULTS",
+    app_ui_draw_settings_button(430U, 320U, 100U, 42U, "TIME",
                                 0U, !busy);
-    app_ui_draw_settings_button(610U, 320U, 150U, 42U, "SAVE",
+    app_ui_draw_settings_button(545U, 320U, 100U, 42U, "DEFAULTS",
+                                0U, !busy);
+    app_ui_draw_settings_button(660U, 320U, 100U, 42U, "SAVE",
                                 0U, !busy && dirty);
 
     lcd_fill(24U, 382U, 776U, 442U, UI_COLOR_PANEL_DARK);
@@ -1523,11 +1751,15 @@ app_ui_settings_action_t app_ui_settings_action_at(uint16_t x, uint16_t y)
     }
     if (y >= 320U && y < 362U)
     {
-        if (x >= 430U && x < 580U)
+        if (x >= 430U && x < 530U)
+        {
+            return APP_UI_SETTINGS_ACTION_TIME;
+        }
+        if (x >= 545U && x < 645U)
         {
             return APP_UI_SETTINGS_ACTION_DEFAULTS;
         }
-        if (x >= 610U && x < 760U)
+        if (x >= 660U && x < 760U)
         {
             return APP_UI_SETTINGS_ACTION_SAVE;
         }
@@ -1833,6 +2065,8 @@ void app_ui_show_monitor(const app_monitor_snapshot_t *snapshot)
     app_ui_draw_metric_panel(410U, 182U, "DROPPED EVENTS");
     app_ui_draw_metric_panel(40U, 292U, "QUEUE NOW / PEAK");
     app_ui_draw_metric_panel(410U, 292U, "STACK FREE I / G / M");
+    lcd_fill(40U, 390U, 759U, 439U, UI_COLOR_PANEL_DARK);
+    lcd_draw_rectangle(40U, 390U, 759U, 439U, UI_COLOR_MUTED);
     app_ui_update_monitor(snapshot);
 }
 
@@ -1876,6 +2110,34 @@ void app_ui_update_monitor(const app_monitor_snapshot_t *snapshot)
     app_ui_show_u32(502U, 336U, snapshot->runtime_stack_watermark, 16U, WHITE);
     app_ui_show_text(550U, 336U, 16U, 16U, 16U, "/", UI_COLOR_MUTED);
     app_ui_show_u32(570U, 336U, snapshot->monitor_stack_watermark, 16U, WHITE);
+
+    lcd_fill(48U, 396U, 751U, 433U, UI_COLOR_PANEL_DARK);
+    app_ui_show_text(52U, 397U, 48U, 16U, 16U, "MOUSE", UI_COLOR_MUTED);
+    app_ui_show_text(104U, 397U, 64U, 16U, 16U,
+                     snapshot->ch9350_connection_known ?
+                         (snapshot->ch9350_mouse_connected ? "ONLINE" : "OFFLINE") :
+                         "WAIT",
+                     snapshot->ch9350_connection_known ?
+                         (snapshot->ch9350_mouse_connected ? GREEN : RED) :
+                         YELLOW);
+    app_ui_show_text(184U, 397U, 56U, 16U, 16U, "REPORT", UI_COLOR_MUTED);
+    app_ui_show_u32(244U, 397U, snapshot->ch9350_mouse_report_count, 16U, WHITE);
+    app_ui_show_text(360U, 397U, 40U, 16U, 16U, "STATE", UI_COLOR_MUTED);
+    app_ui_show_u32(404U, 397U, snapshot->ch9350_state_frame_count, 16U, WHITE);
+    app_ui_show_text(520U, 397U, 32U, 16U, 16U, "C/D", UI_COLOR_MUTED);
+    app_ui_show_u32(556U, 397U, snapshot->ch9350_connect_event_count, 16U, WHITE);
+    app_ui_show_text(636U, 397U, 8U, 16U, 16U, "/", UI_COLOR_MUTED);
+    app_ui_show_u32(648U, 397U, snapshot->ch9350_disconnect_event_count, 16U, WHITE);
+
+    app_ui_show_text(52U, 417U, 88U, 16U, 16U, "ERR F/S/U", UI_COLOR_MUTED);
+    app_ui_show_u32(144U, 417U, snapshot->ch9350_discarded_frame_count, 16U,
+                    snapshot->ch9350_discarded_frame_count ? RED : GREEN);
+    app_ui_show_text(224U, 417U, 8U, 16U, 16U, "/", UI_COLOR_MUTED);
+    app_ui_show_u32(236U, 417U, snapshot->ch9350_sync_error_count, 16U,
+                    snapshot->ch9350_sync_error_count ? RED : GREEN);
+    app_ui_show_text(316U, 417U, 8U, 16U, 16U, "/", UI_COLOR_MUTED);
+    app_ui_show_u32(328U, 417U, snapshot->ch9350_uart_dropped_count, 16U,
+                    snapshot->ch9350_uart_dropped_count ? RED : GREEN);
 
     if (restore_cursor)
     {

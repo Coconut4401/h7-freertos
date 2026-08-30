@@ -464,8 +464,38 @@ void app_files_handle_event(const app_input_event_t *event)
     uint8_t index;
     uint8_t page_count;
 
-    if (!g_files.active || event == NULL ||
-        event->type != APP_INPUT_EVENT_DOWN || g_files.busy)
+    if (!g_files.active || event == NULL || g_files.busy)
+    {
+        return;
+    }
+
+    if (event->type == APP_INPUT_EVENT_SCROLL)
+    {
+        if (g_files.view == APP_FILES_VIEW_CONTENT)
+        {
+            return;
+        }
+        page_count = (uint8_t)((g_files.file_count +
+                                APP_UI_FILES_PAGE_SIZE - 1U) /
+                               APP_UI_FILES_PAGE_SIZE);
+        if (event->wheel > 0 && g_files.page > 0U)
+        {
+            g_files.page--;
+            g_files.delete_armed = 0U;
+            app_files_set_status("PREVIOUS PAGE");
+            app_files_redraw();
+        }
+        else if (event->wheel < 0 && g_files.page + 1U < page_count)
+        {
+            g_files.page++;
+            g_files.delete_armed = 0U;
+            app_files_set_status("NEXT PAGE");
+            app_files_redraw();
+        }
+        return;
+    }
+
+    if (event->type != APP_INPUT_EVENT_DOWN)
     {
         return;
     }

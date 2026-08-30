@@ -288,16 +288,40 @@ void app_logs_handle_event(const app_input_event_t *event)
     app_ui_logs_action_t action;
     uint8_t page_count;
 
-    if (!g_logs_view.active || event == NULL ||
-        event->type != APP_INPUT_EVENT_DOWN || g_logs_view.busy)
+    if (!g_logs_view.active || event == NULL || g_logs_view.busy)
+    {
+        return;
+    }
+
+    page_count = (uint8_t)((g_logs_view.snapshot_count +
+                            APP_UI_LOGS_PAGE_SIZE - 1U) /
+                           APP_UI_LOGS_PAGE_SIZE);
+    if (event->type == APP_INPUT_EVENT_SCROLL)
+    {
+        if (event->wheel > 0 && g_logs_view.page > 0U)
+        {
+            g_logs_view.page--;
+            g_logs_view.clear_armed = 0U;
+            app_logs_set_status("NEWER LOG PAGE");
+            app_logs_redraw();
+        }
+        else if (event->wheel < 0 &&
+                 g_logs_view.page + 1U < page_count)
+        {
+            g_logs_view.page++;
+            g_logs_view.clear_armed = 0U;
+            app_logs_set_status("OLDER LOG PAGE");
+            app_logs_redraw();
+        }
+        return;
+    }
+
+    if (event->type != APP_INPUT_EVENT_DOWN)
     {
         return;
     }
 
     action = app_ui_logs_action_at(event->x, event->y);
-    page_count = (uint8_t)((g_logs_view.snapshot_count +
-                            APP_UI_LOGS_PAGE_SIZE - 1U) /
-                           APP_UI_LOGS_PAGE_SIZE);
     if (action == APP_UI_LOGS_ACTION_CLEAR)
     {
         if (!g_logs_view.clear_armed)

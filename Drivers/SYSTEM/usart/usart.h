@@ -1,43 +1,43 @@
-
+ï»¿
 #ifndef __USART_H
 #define __USART_H
 
 #include "stdio.h"
 #include "./SYSTEM/sys/sys.h"
+#include "./SYSTEM/usart/usart_rx.h"
 
 /******************************************************************************************/
-/* Òý½Å ºÍ ´®¿Ú ¶¨Òå 
- * Ä¬ÈÏÊÇÕë¶ÔUSART1µÄ.
- * ×¢Òâ: Í¨¹ýÐÞ¸ÄÕâ12¸öºê¶¨Òå,¿ÉÒÔÖ§³ÖUSART1~UART7ÈÎÒâÒ»¸ö´®¿Ú.
+/* å¼•è„š å’Œ ä¸²å£ å®šä¹‰ 
+ * é»˜è®¤æ˜¯é’ˆå¯¹USART1çš„.
+ * æ³¨æ„: é€šè¿‡ä¿®æ”¹è¿™12ä¸ªå®å®šä¹‰,å¯ä»¥æ”¯æŒUSART1~UART7ä»»æ„ä¸€ä¸ªä¸²å£.
  */
 #define USART_TX_GPIO_PORT                  GPIOA
 #define USART_TX_GPIO_PIN                   SYS_GPIO_PIN9
-#define USART_TX_GPIO_AF                    7                           /* AF¹¦ÄÜÑ¡Ôñ */
-#define USART_TX_GPIO_CLK_ENABLE()          do{ RCC->AHB4ENR |= 1 << 0; }while(0)   /* PA¿ÚÊ±ÖÓÊ¹ÄÜ */
+#define USART_TX_GPIO_AF                    7                           /* AFåŠŸèƒ½é€‰æ‹© */
+#define USART_TX_GPIO_CLK_ENABLE()          do{ RCC->AHB4ENR |= 1 << 0; }while(0)   /* PAå£æ—¶é’Ÿä½¿èƒ½ */
 
 #define USART_RX_GPIO_PORT                  GPIOA
 #define USART_RX_GPIO_PIN                   SYS_GPIO_PIN10
-#define USART_RX_GPIO_AF                    7                           /* AF¹¦ÄÜÑ¡Ôñ */
-#define USART_RX_GPIO_CLK_ENABLE()          do{ RCC->AHB4ENR |= 1 << 0; }while(0)   /* PA¿ÚÊ±ÖÓÊ¹ÄÜ */
+#define USART_RX_GPIO_AF                    7                           /* AFåŠŸèƒ½é€‰æ‹© */
+#define USART_RX_GPIO_CLK_ENABLE()          do{ RCC->AHB4ENR |= 1 << 0; }while(0)   /* PAå£æ—¶é’Ÿä½¿èƒ½ */
 
 #define USART_UX                            USART1
 #define USART_UX_IRQn                       USART1_IRQn
 #define USART_UX_IRQHandler                 USART1_IRQHandler
-#define USART_UX_CLK_ENABLE()               do{ RCC->APB2ENR |= 1 << 4; }while(0)   /* USART1 Ê±ÖÓÊ¹ÄÜ */
+#define USART_UX_CLK_ENABLE()               do{ RCC->APB2ENR |= 1 << 4; }while(0)   /* USART1 æ—¶é’Ÿä½¿èƒ½ */
 
 /******************************************************************************************/
 
 
-#define USART_REC_LEN               200         /* ¶¨Òå×î´ó½ÓÊÕ×Ö½ÚÊý 200 */
-#define USART_EN_RX                 1           /* Ê¹ÄÜ£¨1£©/½ûÖ¹£¨0£©´®¿Ú1½ÓÊÕ */
+#define USART_RX_RING_SIZE          256U
+#define USART_EN_RX                 1           /* ä½¿èƒ½ï¼ˆ1ï¼‰/ç¦æ­¢ï¼ˆ0ï¼‰ä¸²å£1æŽ¥æ”¶ */
 
 
-extern uint8_t  g_usart_rx_buf[USART_REC_LEN];  /* ½ÓÊÕ»º³å,×î´óUSART_REC_LEN¸ö×Ö½Ú.Ä©×Ö½ÚÎª»»ÐÐ·û */
-extern uint16_t g_usart_rx_sta;                 /* ½ÓÊÕ×´Ì¬±ê¼Ç */
-
-void usart_init(uint32_t pclk2, uint32_t bound);/* ´®¿Ú³õÊ¼»¯º¯Êý */
+void usart_init(uint32_t pclk2, uint32_t bound);/* ä¸²å£åˆå§‹åŒ–å‡½æ•° */
+void usart_tx_write(const uint8_t *data, uint16_t length);
 
 #endif  
+
 
 
 

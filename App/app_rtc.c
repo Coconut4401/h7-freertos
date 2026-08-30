@@ -10,7 +10,6 @@
 #define DS3231_ADDRESS_WRITE       0xD0U
 #define DS3231_ADDRESS_READ        0xD1U
 #define DS3231_REG_SECONDS         0x00U
-#define DS3231_REG_CAL_SIGNATURE   0x07U
 #define DS3231_REG_CONTROL         0x0EU
 #define DS3231_REG_STATUS          0x0FU
 #define DS3231_STATUS_OSF          0x80U
@@ -40,41 +39,6 @@ static void app_rtc_seconds_to_datetime(uint32_t total_seconds,
 static void app_rtc_apply_compensation(
     const app_rtc_datetime_t *raw_datetime,
     app_rtc_datetime_t *corrected_datetime);
-
-static uint32_t app_rtc_build_signature(
-    const app_rtc_datetime_t *build_datetime)
-{
-    return app_rtc_datetime_to_seconds(build_datetime) ^ 0x52544331U;
-}
-
-static uint8_t app_rtc_signature_matches(uint32_t expected_signature)
-{
-    uint8_t data[4];
-    uint32_t stored_signature;
-
-    if (!app_rtc_read_registers(DS3231_REG_CAL_SIGNATURE,
-                                data, sizeof(data)))
-    {
-        return 0U;
-    }
-    stored_signature = (uint32_t)data[0] |
-                       ((uint32_t)data[1] << 8U) |
-                       ((uint32_t)data[2] << 16U) |
-                       ((uint32_t)data[3] << 24U);
-    return (stored_signature == expected_signature) ? 1U : 0U;
-}
-
-static uint8_t app_rtc_write_signature(uint32_t signature)
-{
-    uint8_t data[4];
-
-    data[0] = (uint8_t)signature;
-    data[1] = (uint8_t)(signature >> 8U);
-    data[2] = (uint8_t)(signature >> 16U);
-    data[3] = (uint8_t)(signature >> 24U);
-    return app_rtc_write_registers(DS3231_REG_CAL_SIGNATURE,
-                                   data, sizeof(data));
-}
 
 static uint8_t app_rtc_bcd_to_bin(uint8_t value)
 {
@@ -277,6 +241,8 @@ static app_rtc_datetime_t app_rtc_build_datetime(void)
     datetime.hour = app_rtc_decimal_pair(&__TIME__[0]);
     datetime.minute = app_rtc_decimal_pair(&__TIME__[3]);
     datetime.second = app_rtc_decimal_pair(&__TIME__[6]);
+    datetime.day = (uint8_t)(((app_rtc_datetime_to_seconds(&datetime) /
+                               86400U + 5U) % 7U) + 1U);
     return datetime;
 }
 
@@ -286,7 +252,6 @@ void app_rtc_init(void)
     uint8_t control;
     uint8_t datetime_valid;
     uint8_t initialize_from_build;
-    uint32_t build_signature;
     app_rtc_datetime_t datetime;
     app_rtc_datetime_t build_datetime;
 
@@ -306,14 +271,8 @@ void app_rtc_init(void)
     printf("DS3231: ACK at 0x68\r\n");
     datetime_valid = app_rtc_read_datetime(&datetime);
     build_datetime = app_rtc_build_datetime();
-    build_signature = app_rtc_build_signature(&build_datetime);
     initialize_from_build = (!datetime_valid ||
                              (status & DS3231_STATUS_OSF) != 0U) ? 1U : 0U;
-    if (!app_rtc_signature_matches(build_signature))
-    {
-        initialize_from_build = 1U;
-        printf("DS3231: new firmware calibration required\r\n");
-    }
 
     if (initialize_from_build)
     {
@@ -321,11 +280,6 @@ void app_rtc_init(void)
         if (!app_rtc_write_datetime(&datetime))
         {
             printf("DS3231: time write failed\r\n");
-            return;
-        }
-        if (!app_rtc_write_signature(build_signature))
-        {
-            printf("DS3231: calibration signature write failed\r\n");
             return;
         }
         status = (uint8_t)(status & (uint8_t)~DS3231_STATUS_OSF);
@@ -345,7 +299,7 @@ void app_rtc_init(void)
         }
     }
 
-    g_rtc.calibration_datetime = build_datetime;
+    g_rtc.calibration_datetime = datetime;
     g_rtc.current_datetime = datetime;
     g_rtc.last_refresh_tick = xTaskGetTickCount();
     g_rtc.available = 1U;
@@ -471,6 +425,41 @@ uint8_t app_rtc_get_datetime(app_rtc_datetime_t *datetime)
         return 0U;
     }
     *datetime = g_rtc.current_datetime;
+    return 1U;
+}
+
+uint8_t app_rtc_set_datetime(const app_rtc_datetime_t *datetime)
+{
+    app_rtc_datetime_t value;
+    uint8_t status;
+
+    if (!g_rtc.available || datetime == NULL)
+    {
+        return 0U;
+    }
+
+    value = *datetime;
+    value.day = 1U;
+    if (!app_rtc_datetime_is_valid(&value))
+    {
+        return 0U;
+    }
+    value.day = (uint8_t)(((app_rtc_datetime_to_seconds(&value) /
+                           86400U + 5U) % 7U) + 1U);
+    if (!app_rtc_write_datetime(&value))
+    {
+        return 0U;
+    }
+
+    if (app_rtc_read_status(&status))
+    {
+        status = (uint8_t)(status & (uint8_t)~DS3231_STATUS_OSF);
+        (void)app_rtc_write_registers(DS3231_REG_STATUS, &status, 1U);
+    }
+
+    g_rtc.calibration_datetime = value;
+    g_rtc.current_datetime = value;
+    g_rtc.last_refresh_tick = xTaskGetTickCount();
     return 1U;
 }
 

@@ -10,7 +10,7 @@
 #include "./SYSTEM/sys/sys.h"
 
 #define AUDIO_COMMAND_QUEUE_LENGTH       6U
-#define AUDIO_DMA_SAMPLE_COUNT           16384U
+#define AUDIO_DMA_SAMPLE_COUNT           65504U
 #define AUDIO_DMA_HALF_SAMPLES           (AUDIO_DMA_SAMPLE_COUNT / 2U)
 #define AUDIO_RAW_BUFFER_SIZE            (AUDIO_DMA_HALF_SAMPLES * 2U)
 #define AUDIO_STORAGE_TIMEOUT_MS         2000U

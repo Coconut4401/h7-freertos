@@ -420,6 +420,16 @@
               <FilePath>..\..\App\app_input.h</FilePath>
             </File>
             <File>
+              <FileName>app_mouse.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\App\app_mouse.c</FilePath>
+            </File>
+            <File>
+              <FileName>app_mouse.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\App\app_mouse.h</FilePath>
+            </File>
+            <File>
               <FileName>app_ui.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\App\app_ui.c</FilePath>
@@ -549,6 +559,11 @@
               <FileType>1</FileType>
               <FilePath>..\..\Drivers\SYSTEM\usart\usart.c</FilePath>
             </File>
+            <File>
+              <FileName>usart_rx.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\Drivers\SYSTEM\usart\usart_rx.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -563,6 +578,16 @@
               <FileName>mpu.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\Drivers\BSP\MPU\mpu.c</FilePath>
+            </File>
+            <File>
+              <FileName>ch9350.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\Drivers\BSP\CH9350\ch9350.c</FilePath>
+            </File>
+            <File>
+              <FileName>ch9350.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\Drivers\BSP\CH9350\ch9350.h</FilePath>
             </File>
             <File>
               <FileName>sdram.c</FileName>

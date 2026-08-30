@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 
+#include "./BSP/CH9350/ch9350.h"
 #include "./BSP/LED/led.h"
 #include "app_input.h"
 #include "app_settings.h"
@@ -24,6 +25,7 @@ void AppMonitorTask(void *argument)
 {
     const app_monitor_context_t *context;
     app_input_stats_t input_stats;
+    ch9350_stats_t ch9350_stats;
     TickType_t last_wake;
     UBaseType_t queue_depth;
     UBaseType_t queue_high_water;
@@ -46,6 +48,7 @@ void AppMonitorTask(void *argument)
         }
 
         app_input_get_stats(&input_stats);
+        ch9350_get_stats(&ch9350_stats);
         input_stack = uxTaskGetStackHighWaterMark(context->input_task);
         runtime_stack = uxTaskGetStackHighWaterMark(context->runtime_task);
         monitor_stack = uxTaskGetStackHighWaterMark(NULL);
@@ -55,11 +58,23 @@ void AppMonitorTask(void *argument)
         snapshot.free_heap_bytes = (uint32_t)xPortGetFreeHeapSize();
         snapshot.input_event_count = input_stats.sent_count;
         snapshot.dropped_event_count = input_stats.dropped_count;
+        snapshot.ch9350_mouse_report_count = ch9350_stats.mouse_report_count;
+        snapshot.ch9350_state_frame_count = ch9350_stats.state_frame_count;
+        snapshot.ch9350_connect_event_count = ch9350_stats.connect_event_count;
+        snapshot.ch9350_disconnect_event_count =
+            ch9350_stats.disconnect_event_count;
+        snapshot.ch9350_discarded_frame_count =
+            ch9350_stats.discarded_frame_count;
+        snapshot.ch9350_sync_error_count = ch9350_stats.sync_error_count;
+        snapshot.ch9350_uart_dropped_count = ch9350_stats.uart_dropped_count;
         snapshot.queue_depth = (uint16_t)queue_depth;
         snapshot.queue_high_water = (uint16_t)queue_high_water;
         snapshot.input_stack_watermark = (uint16_t)input_stack;
         snapshot.runtime_stack_watermark = (uint16_t)runtime_stack;
         snapshot.monitor_stack_watermark = (uint16_t)monitor_stack;
+        snapshot.ch9350_connection_known = ch9350_stats.connection_known;
+        snapshot.ch9350_mouse_connected = ch9350_stats.mouse_connected;
+        snapshot.ch9350_last_state_value = ch9350_stats.last_state_value;
 
         taskENTER_CRITICAL();
         g_monitor_snapshot = snapshot;
@@ -67,7 +82,7 @@ void AppMonitorTask(void *argument)
 
         if (app_settings_get_serial_output_enabled())
         {
-            printf("RTOS tick=%lu heap=%u queue=%u/%u input=%lu drop=%lu stack(I/G/M)=%u/%u/%u\r\n",
+            printf("RTOS tick=%lu heap=%u queue=%u/%u input=%lu drop=%lu stack(I/G/M)=%u/%u/%u CH9350=%s report=%lu state=%lu last=0x%02X link=%lu/%lu err=%lu/%lu/%lu\r\n",
                    (unsigned long)xTaskGetTickCount(),
                    (unsigned int)snapshot.free_heap_bytes,
                    (unsigned int)queue_depth,
@@ -76,7 +91,18 @@ void AppMonitorTask(void *argument)
                    (unsigned long)input_stats.dropped_count,
                    (unsigned int)input_stack,
                    (unsigned int)runtime_stack,
-                   (unsigned int)monitor_stack);
+                   (unsigned int)monitor_stack,
+                   ch9350_stats.connection_known ?
+                       (ch9350_stats.mouse_connected ? "ON" : "OFF") :
+                       "WAIT",
+                   (unsigned long)ch9350_stats.mouse_report_count,
+                   (unsigned long)ch9350_stats.state_frame_count,
+                   (unsigned int)ch9350_stats.last_state_value,
+                   (unsigned long)ch9350_stats.connect_event_count,
+                   (unsigned long)ch9350_stats.disconnect_event_count,
+                   (unsigned long)ch9350_stats.discarded_frame_count,
+                   (unsigned long)ch9350_stats.sync_error_count,
+                   (unsigned long)ch9350_stats.uart_dropped_count);
         }
 
         vTaskDelayUntil(&last_wake, pdMS_TO_TICKS(500U));

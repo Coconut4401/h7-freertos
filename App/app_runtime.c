@@ -34,6 +34,8 @@ typedef struct
     TickType_t last_monitor_update;
     TickType_t last_activity;
     uint8_t suppress_input_until_release;
+    uint8_t mouse_connection_known;
+    uint8_t mouse_connected;
     int8_t selected_icon;
     int8_t active_application;
 } app_runtime_state_t;
@@ -125,6 +127,8 @@ static void app_runtime_enter_desktop(app_runtime_state_t *runtime,
     app_ui_show_desktop(context->touch_available,
                         context->controller_id,
                         runtime->last_display_second);
+    app_ui_update_desktop_mouse(runtime->mouse_connection_known,
+                                runtime->mouse_connected);
     if (runtime->selected_icon >= 0)
     {
         app_ui_select_desktop_icon(runtime->selected_icon);
@@ -223,6 +227,15 @@ static void app_runtime_handle_login_event(app_runtime_state_t *runtime,
 {
     int8_t key;
 
+    if (event->source == APP_INPUT_SOURCE_MOUSE &&
+        (event->type == APP_INPUT_EVENT_DOWN ||
+         event->type == APP_INPUT_EVENT_MOVE))
+    {
+        runtime->cursor_x = event->x;
+        runtime->cursor_y = event->y;
+        app_ui_move_cursor(runtime->cursor_x, runtime->cursor_y);
+    }
+
     if (event->type != APP_INPUT_EVENT_DOWN)
     {
         return;
@@ -249,6 +262,54 @@ static void app_runtime_handle_login_event(app_runtime_state_t *runtime,
     {
         app_runtime_submit_pin(runtime, context, now);
     }
+}
+
+static uint8_t app_runtime_handle_mouse_connection(
+    app_runtime_state_t *runtime,
+    const app_input_event_t *event)
+{
+    uint8_t was_known;
+    uint8_t was_connected;
+
+    if (event->type != APP_INPUT_EVENT_MOUSE_CONNECTED &&
+        event->type != APP_INPUT_EVENT_MOUSE_DISCONNECTED)
+    {
+        return 0U;
+    }
+
+    was_known = runtime->mouse_connection_known;
+    was_connected = runtime->mouse_connected;
+    runtime->mouse_connection_known = 1U;
+    runtime->mouse_connected =
+        (event->type == APP_INPUT_EVENT_MOUSE_CONNECTED) ? 1U : 0U;
+
+    if (runtime->mouse_connected)
+    {
+        app_logs_add(APP_LOG_LEVEL_INFO, "CH9350",
+                     (was_known && !was_connected) ?
+                         "MOUSE RECONNECTED" : "MOUSE CONNECTED");
+    }
+    else
+    {
+        app_logs_add(APP_LOG_LEVEL_WARNING, "CH9350",
+                     (was_known && was_connected) ?
+                         "MOUSE DISCONNECTED" : "MOUSE NOT CONNECTED");
+    }
+
+    if (runtime->state == APP_STATE_DESKTOP)
+    {
+        app_ui_update_desktop_mouse(runtime->mouse_connection_known,
+                                    runtime->mouse_connected);
+    }
+    return 1U;
+}
+
+static uint8_t app_runtime_event_can_wake(const app_input_event_t *event)
+{
+    return (event->type == APP_INPUT_EVENT_DOWN ||
+            event->type == APP_INPUT_EVENT_MOVE ||
+            event->type == APP_INPUT_EVENT_SCROLL ||
+            event->type == APP_INPUT_EVENT_BACK) ? 1U : 0U;
 }
 
 static void app_runtime_handle_desktop_event(app_runtime_state_t *runtime,
@@ -306,7 +367,8 @@ static void app_runtime_handle_application_event(app_runtime_state_t *runtime,
         return;
     }
 
-    if (runtime->active_application != APP_UI_APP_DRAW &&
+    if ((runtime->active_application != APP_UI_APP_DRAW ||
+         event->source == APP_INPUT_SOURCE_MOUSE) &&
         (event->type == APP_INPUT_EVENT_DOWN ||
          event->type == APP_INPUT_EVENT_MOVE))
     {
@@ -315,8 +377,9 @@ static void app_runtime_handle_application_event(app_runtime_state_t *runtime,
         app_ui_move_cursor(runtime->cursor_x, runtime->cursor_y);
     }
 
-    if (event->type == APP_INPUT_EVENT_DOWN &&
-        app_ui_back_button_at(event->x, event->y))
+    if (event->type == APP_INPUT_EVENT_BACK ||
+        (event->type == APP_INPUT_EVENT_DOWN &&
+         app_ui_back_button_at(event->x, event->y)))
     {
         if (runtime->active_application == APP_UI_APP_FILES)
         {
@@ -459,6 +522,8 @@ void AppRuntimeTask(void *argument)
     runtime.last_monitor_update = 0U;
     runtime.last_activity = 0U;
     runtime.suppress_input_until_release = 0U;
+    runtime.mouse_connection_known = 0U;
+    runtime.mouse_connected = 0U;
     runtime.selected_icon = -1;
     runtime.active_application = -1;
 
@@ -482,7 +547,11 @@ void AppRuntimeTask(void *argument)
                           pdMS_TO_TICKS(50U)) == pdPASS)
         {
             now = xTaskGetTickCount();
-            if (app_screen_is_off())
+            if (app_runtime_handle_mouse_connection(&runtime, &event))
+            {
+                /* Link-state notifications do not count as user activity. */
+            }
+            else if (app_screen_is_off())
             {
                 if (runtime.suppress_input_until_release)
                 {
@@ -491,12 +560,12 @@ void AppRuntimeTask(void *argument)
                         runtime.suppress_input_until_release = 0U;
                     }
                 }
-                else
+                else if (app_runtime_event_can_wake(&event))
                 {
                     app_screen_on();
                     runtime.last_activity = now;
                     runtime.suppress_input_until_release =
-                        (event.type == APP_INPUT_EVENT_UP) ? 0U : 1U;
+                        (event.type == APP_INPUT_EVENT_DOWN) ? 1U : 0U;
                     app_logs_add(APP_LOG_LEVEL_INFO, "POWER",
                                  "SCREEN WAKE BY INPUT");
                 }

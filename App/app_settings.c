@@ -8,6 +8,7 @@
 #include "app_audio.h"
 #include "app_input.h"
 #include "app_logs.h"
+#include "app_rtc.h"
 #include "app_screen.h"
 #include "app_storage.h"
 #include "app_ui.h"
@@ -62,12 +63,45 @@ typedef struct
     uint8_t active;
     uint8_t busy;
     uint8_t dirty;
+    uint8_t rtc_editing;
     char status[64];
+    app_rtc_datetime_t rtc_datetime;
     app_settings_config_t config;
     app_settings_document_t io_document;
 } app_settings_state_t;
 
 static app_settings_state_t g_settings;
+
+static uint8_t app_settings_rtc_days_in_month(uint16_t year, uint8_t month)
+{
+    static const uint8_t days[12] =
+    {
+        31U, 28U, 31U, 30U, 31U, 30U,
+        31U, 31U, 30U, 31U, 30U, 31U
+    };
+
+    if (month < 1U || month > 12U)
+    {
+        return 31U;
+    }
+    if (month == 2U && (year % 4U) == 0U)
+    {
+        return 29U;
+    }
+    return days[month - 1U];
+}
+
+static void app_settings_rtc_clamp_date(void)
+{
+    uint8_t maximum_date;
+
+    maximum_date = app_settings_rtc_days_in_month(
+        g_settings.rtc_datetime.year, g_settings.rtc_datetime.month);
+    if (g_settings.rtc_datetime.date > maximum_date)
+    {
+        g_settings.rtc_datetime.date = maximum_date;
+    }
+}
 
 static void app_settings_copy_text(char *destination,
                                    uint32_t destination_size,
@@ -269,6 +303,12 @@ static void app_settings_redraw(void)
     {
         return;
     }
+    if (g_settings.rtc_editing)
+    {
+        app_ui_show_time_settings(&g_settings.rtc_datetime,
+                                  app_rtc_is_available());
+        return;
+    }
     config = app_settings_get_config();
     app_ui_show_settings(config.cursor_sensitivity,
                          config.cursor_size,
@@ -377,6 +417,124 @@ void app_settings_open(void)
 void app_settings_close(void)
 {
     g_settings.active = 0U;
+    g_settings.rtc_editing = 0U;
+}
+
+static void app_settings_handle_time_event(const app_input_event_t *event)
+{
+    app_ui_time_action_t action;
+    uint8_t maximum_date;
+
+    action = app_ui_time_action_at(event->x, event->y);
+    if (action == APP_UI_TIME_ACTION_CANCEL)
+    {
+        g_settings.rtc_editing = 0U;
+        app_settings_set_status("TIME CHANGE CANCELLED");
+        app_settings_redraw();
+        return;
+    }
+    if (action == APP_UI_TIME_ACTION_APPLY)
+    {
+        if (app_rtc_set_datetime(&g_settings.rtc_datetime))
+        {
+            g_settings.rtc_editing = 0U;
+            app_settings_set_status("DS3231 DATE AND TIME UPDATED");
+            app_logs_add(APP_LOG_LEVEL_INFO, "RTC", "DATE AND TIME UPDATED");
+        }
+        else
+        {
+            app_settings_set_status("DS3231 TIME UPDATE FAILED");
+            app_logs_add(APP_LOG_LEVEL_ERROR, "RTC", "TIME UPDATE FAILED");
+        }
+        app_settings_redraw();
+        return;
+    }
+
+    if (action == APP_UI_TIME_ACTION_YEAR_DOWN)
+    {
+        g_settings.rtc_datetime.year =
+            g_settings.rtc_datetime.year > 2000U ?
+            (uint16_t)(g_settings.rtc_datetime.year - 1U) : 2099U;
+        app_settings_rtc_clamp_date();
+    }
+    else if (action == APP_UI_TIME_ACTION_YEAR_UP)
+    {
+        g_settings.rtc_datetime.year =
+            g_settings.rtc_datetime.year < 2099U ?
+            (uint16_t)(g_settings.rtc_datetime.year + 1U) : 2000U;
+        app_settings_rtc_clamp_date();
+    }
+    else if (action == APP_UI_TIME_ACTION_MONTH_DOWN)
+    {
+        g_settings.rtc_datetime.month =
+            g_settings.rtc_datetime.month > 1U ?
+            (uint8_t)(g_settings.rtc_datetime.month - 1U) : 12U;
+        app_settings_rtc_clamp_date();
+    }
+    else if (action == APP_UI_TIME_ACTION_MONTH_UP)
+    {
+        g_settings.rtc_datetime.month =
+            g_settings.rtc_datetime.month < 12U ?
+            (uint8_t)(g_settings.rtc_datetime.month + 1U) : 1U;
+        app_settings_rtc_clamp_date();
+    }
+    else if (action == APP_UI_TIME_ACTION_DATE_DOWN)
+    {
+        maximum_date = app_settings_rtc_days_in_month(
+            g_settings.rtc_datetime.year, g_settings.rtc_datetime.month);
+        g_settings.rtc_datetime.date =
+            g_settings.rtc_datetime.date > 1U ?
+            (uint8_t)(g_settings.rtc_datetime.date - 1U) : maximum_date;
+    }
+    else if (action == APP_UI_TIME_ACTION_DATE_UP)
+    {
+        maximum_date = app_settings_rtc_days_in_month(
+            g_settings.rtc_datetime.year, g_settings.rtc_datetime.month);
+        g_settings.rtc_datetime.date =
+            g_settings.rtc_datetime.date < maximum_date ?
+            (uint8_t)(g_settings.rtc_datetime.date + 1U) : 1U;
+    }
+    else if (action == APP_UI_TIME_ACTION_HOUR_DOWN)
+    {
+        g_settings.rtc_datetime.hour =
+            g_settings.rtc_datetime.hour > 0U ?
+            (uint8_t)(g_settings.rtc_datetime.hour - 1U) : 23U;
+    }
+    else if (action == APP_UI_TIME_ACTION_HOUR_UP)
+    {
+        g_settings.rtc_datetime.hour =
+            g_settings.rtc_datetime.hour < 23U ?
+            (uint8_t)(g_settings.rtc_datetime.hour + 1U) : 0U;
+    }
+    else if (action == APP_UI_TIME_ACTION_MINUTE_DOWN)
+    {
+        g_settings.rtc_datetime.minute =
+            g_settings.rtc_datetime.minute > 0U ?
+            (uint8_t)(g_settings.rtc_datetime.minute - 1U) : 59U;
+    }
+    else if (action == APP_UI_TIME_ACTION_MINUTE_UP)
+    {
+        g_settings.rtc_datetime.minute =
+            g_settings.rtc_datetime.minute < 59U ?
+            (uint8_t)(g_settings.rtc_datetime.minute + 1U) : 0U;
+    }
+    else if (action == APP_UI_TIME_ACTION_SECOND_DOWN)
+    {
+        g_settings.rtc_datetime.second =
+            g_settings.rtc_datetime.second > 0U ?
+            (uint8_t)(g_settings.rtc_datetime.second - 1U) : 59U;
+    }
+    else if (action == APP_UI_TIME_ACTION_SECOND_UP)
+    {
+        g_settings.rtc_datetime.second =
+            g_settings.rtc_datetime.second < 59U ?
+            (uint8_t)(g_settings.rtc_datetime.second + 1U) : 0U;
+    }
+    else
+    {
+        return;
+    }
+    app_settings_redraw();
 }
 
 void app_settings_handle_event(const app_input_event_t *event)
@@ -387,6 +545,12 @@ void app_settings_handle_event(const app_input_event_t *event)
     if (!g_settings.active || event == NULL ||
         event->type != APP_INPUT_EVENT_DOWN || g_settings.busy)
     {
+        return;
+    }
+
+    if (g_settings.rtc_editing)
+    {
+        app_settings_handle_time_event(event);
         return;
     }
 
@@ -496,6 +660,20 @@ void app_settings_handle_event(const app_input_event_t *event)
     {
         config.serial_output_enabled = 0U;
         app_settings_change(&config, "SERIAL STATUS DISABLED - AUTO SAVE");
+    }
+    else if (action == APP_UI_SETTINGS_ACTION_TIME)
+    {
+        if (app_rtc_get_datetime(&g_settings.rtc_datetime))
+        {
+            g_settings.rtc_editing = 1U;
+            app_settings_redraw();
+        }
+        else
+        {
+            app_settings_set_status("DS3231 IS OFFLINE");
+            app_logs_add(APP_LOG_LEVEL_ERROR, "RTC", "TIME SET UNAVAILABLE");
+            app_settings_redraw();
+        }
     }
     else if (action == APP_UI_SETTINGS_ACTION_DEFAULTS)
     {

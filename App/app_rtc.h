@@ -21,6 +21,7 @@ void app_rtc_init(void);
 uint8_t app_rtc_is_available(void);
 void app_rtc_update(void);
 uint8_t app_rtc_get_datetime(app_rtc_datetime_t *datetime);
+uint8_t app_rtc_set_datetime(const app_rtc_datetime_t *datetime);
 uint32_t app_rtc_get_seconds_of_day(void);
 
 #endif

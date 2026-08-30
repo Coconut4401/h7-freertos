@@ -1,24 +1,24 @@
-
+ï»¿
  
 #include "./SYSTEM/sys/sys.h"
 #include "./SYSTEM/usart/usart.h"
 
 
-/* Èç¹ûÊ¹ÓÃos,Ôò°üÀ¨ÏÂÃæµÄÍ·ÎÄ¼ş¼´¿É. */
+/* å¦‚æœä½¿ç”¨os,åˆ™åŒ…æ‹¬ä¸‹é¢çš„å¤´æ–‡ä»¶å³å¯. */
 #if SYS_SUPPORT_OS
-#include "os.h"   /* os Ê¹ÓÃ */
+#include "os.h"   /* os ä½¿ç”¨ */
 #endif
 
 /******************************************************************************************/
-/* ¼ÓÈëÒÔÏÂ´úÂë, Ö§³Öprintfº¯Êı, ¶ø²»ĞèÒªÑ¡Ôñuse MicroLIB */
+/* åŠ å…¥ä»¥ä¸‹ä»£ç , æ”¯æŒprintfå‡½æ•°, è€Œä¸éœ€è¦é€‰æ‹©use MicroLIB */
 
 #if 1
-#if (__ARMCC_VERSION >= 6010050)            /* Ê¹ÓÃAC6±àÒëÆ÷Ê± */
-__asm(".global __use_no_semihosting\n\t");  /* ÉùÃ÷²»Ê¹ÓÃ°ëÖ÷»úÄ£Ê½ */
-__asm(".global __ARM_use_no_argv \n\t");    /* AC6ÏÂĞèÒªÉùÃ÷mainº¯ÊıÎªÎŞ²ÎÊı¸ñÊ½£¬·ñÔò²¿·ÖÀı³Ì¿ÉÄÜ³öÏÖ°ëÖ÷»úÄ£Ê½ */
+#if (__ARMCC_VERSION >= 6010050)            /* ä½¿ç”¨AC6ç¼–è¯‘å™¨æ—¶ */
+__asm(".global __use_no_semihosting\n\t");  /* å£°æ˜ä¸ä½¿ç”¨åŠä¸»æœºæ¨¡å¼ */
+__asm(".global __ARM_use_no_argv \n\t");    /* AC6ä¸‹éœ€è¦å£°æ˜mainå‡½æ•°ä¸ºæ— å‚æ•°æ ¼å¼ï¼Œå¦åˆ™éƒ¨åˆ†ä¾‹ç¨‹å¯èƒ½å‡ºç°åŠä¸»æœºæ¨¡å¼ */
 
 #else
-/* Ê¹ÓÃAC5±àÒëÆ÷Ê±, ÒªÔÚÕâÀï¶¨Òå__FILE ºÍ ²»Ê¹ÓÃ°ëÖ÷»úÄ£Ê½ */
+/* ä½¿ç”¨AC5ç¼–è¯‘å™¨æ—¶, è¦åœ¨è¿™é‡Œå®šä¹‰__FILE å’Œ ä¸ä½¿ç”¨åŠä¸»æœºæ¨¡å¼ */
 #pragma import(__use_no_semihosting)
 
 struct __FILE
@@ -31,14 +31,14 @@ struct __FILE
 
 #endif
 
-/* ²»Ê¹ÓÃ°ëÖ÷»úÄ£Ê½£¬ÖÁÉÙĞèÒªÖØ¶¨Òå_ttywrch\_sys_exit\_sys_command_stringº¯Êı,ÒÔÍ¬Ê±¼æÈİAC6ºÍAC5Ä£Ê½ */
+/* ä¸ä½¿ç”¨åŠä¸»æœºæ¨¡å¼ï¼Œè‡³å°‘éœ€è¦é‡å®šä¹‰_ttywrch\_sys_exit\_sys_command_stringå‡½æ•°,ä»¥åŒæ—¶å…¼å®¹AC6å’ŒAC5æ¨¡å¼ */
 int _ttywrch(int ch)
 {
     ch = ch;
     return ch;
 }
 
-/* ¶¨Òå_sys_exit()ÒÔ±ÜÃâÊ¹ÓÃ°ëÖ÷»úÄ£Ê½ */
+/* å®šä¹‰_sys_exit()ä»¥é¿å…ä½¿ç”¨åŠä¸»æœºæ¨¡å¼ */
 void _sys_exit(int x)
 {
     x = x;
@@ -49,128 +49,154 @@ char *_sys_command_string(char *cmd, int len)
     return NULL;
 }
 
-/* FILE ÔÚ stdio.hÀïÃæ¶¨Òå. */
+/* FILE åœ¨ stdio.hé‡Œé¢å®šä¹‰. */
 FILE __stdout;
 
-/* ÖØ¶¨Òåfputcº¯Êı, printfº¯Êı×îÖÕ»áÍ¨¹ıµ÷ÓÃfputcÊä³ö×Ö·û´®µ½´®¿Ú */
+/* é‡å®šä¹‰fputcå‡½æ•°, printfå‡½æ•°æœ€ç»ˆä¼šé€šè¿‡è°ƒç”¨fputcè¾“å‡ºå­—ç¬¦ä¸²åˆ°ä¸²å£ */
 int fputc(int ch, FILE *f)
 {
-    while ((USART_UX->ISR & 0X40) == 0);    /* µÈ´ıÉÏÒ»¸ö×Ö·û·¢ËÍÍê³É */
+    while ((USART_UX->ISR & 0X40) == 0);    /* ç­‰å¾…ä¸Šä¸€ä¸ªå­—ç¬¦å‘é€å®Œæˆ */
 
-    USART_UX->TDR = (uint8_t)ch;            /* ½«Òª·¢ËÍµÄ×Ö·û ch Ğ´Èëµ½DR¼Ä´æÆ÷ */
+    USART_UX->TDR = (uint8_t)ch;            /* å°†è¦å‘é€çš„å­—ç¬¦ ch å†™å…¥åˆ°DRå¯„å­˜å™¨ */
     return ch;
 }
 #endif
 /******************************************************************************************/
 
+void usart_tx_write(const uint8_t *data, uint16_t length)
+{
+    uint16_t index;
 
-#if USART_EN_RX     /* Èç¹ûÊ¹ÄÜÁË½ÓÊÕ */
+    if (data == NULL)
+    {
+        return;
+    }
 
-/* ½ÓÊÕ»º³å, ×î´óUSART_REC_LEN¸ö×Ö½Ú. */
-uint8_t g_usart_rx_buf[USART_REC_LEN];
+    for (index = 0U; index < length; index++)
+    {
+        while ((USART_UX->ISR & (1U << 7)) == 0U)
+        {
+        }
+        USART_UX->TDR = data[index];
+    }
+    while ((USART_UX->ISR & (1U << 6)) == 0U)
+    {
+    }
+}
 
-/*  ½ÓÊÕ×´Ì¬
- *  bit15£¬      ½ÓÊÕÍê³É±êÖ¾
- *  bit14£¬      ½ÓÊÕµ½0x0d
- *  bit13~0£¬    ½ÓÊÕµ½µÄÓĞĞ§×Ö½ÚÊıÄ¿
-*/
-uint16_t g_usart_rx_sta = 0;
+
+#if USART_EN_RX     /* å¦‚æœä½¿èƒ½äº†æ¥æ”¶ */
+
+static uint8_t g_usart_rx_ring[USART_RX_RING_SIZE];
+static volatile uint16_t g_usart_rx_head;
+static volatile uint16_t g_usart_rx_tail;
+static volatile uint32_t g_usart_rx_dropped;
+
+uint8_t usart_rx_read_byte(uint8_t *data)
+{
+    uint16_t tail;
+
+    if (data == NULL)
+    {
+        return 0U;
+    }
+
+    tail = g_usart_rx_tail;
+    if (tail == g_usart_rx_head)
+    {
+        return 0U;
+    }
+
+    *data = g_usart_rx_ring[tail];
+    g_usart_rx_tail = (uint16_t)((tail + 1U) &
+                                 (USART_RX_RING_SIZE - 1U));
+    return 1U;
+}
+
+void usart_rx_reset(void)
+{
+    g_usart_rx_tail = g_usart_rx_head;
+}
+
+uint32_t usart_rx_get_dropped_count(void)
+{
+    return g_usart_rx_dropped;
+}
 
 /**
- * @brief       ´®¿ÚXÖĞ¶Ï·şÎñº¯Êı
- * @param       ÎŞ
- * @retval      ÎŞ
+ * @brief       ä¸²å£Xä¸­æ–­æœåŠ¡å‡½æ•°
+ * @param       æ— 
+ * @retval      æ— 
  */
 void USART_UX_IRQHandler(void)
 {
     uint8_t rxdata;
-#if SYS_SUPPORT_OS  /* Èç¹ûSYS_SUPPORT_OSÎªÕæ£¬ÔòĞèÒªÖ§³ÖOS. */
-    OSIntEnter();
-#endif
+    uint16_t head;
+    uint16_t next;
 
-    if (USART_UX->ISR & (1 << 5))               /* ½ÓÊÕµ½Êı¾İ */
+    while (USART_UX->ISR & (1U << 5))
     {
         rxdata = USART_UX->RDR;
-
-        if ((g_usart_rx_sta & 0x8000) == 0)     /* ½ÓÊÕÎ´Íê³É? */
+        head = g_usart_rx_head;
+        next = (uint16_t)((head + 1U) & (USART_RX_RING_SIZE - 1U));
+        if (next != g_usart_rx_tail)
         {
-            if (g_usart_rx_sta & 0x4000)        /* ½ÓÊÕµ½ÁË0x0d? */
-            {
-                if (rxdata != 0x0a)             /* ½ÓÊÕµ½ÁË0x0a? (±ØĞëÏÈ½ÓÊÕµ½µ½0x0d,²Å¼ì²é0x0a) */
-                {
-                    g_usart_rx_sta = 0;         /* ½ÓÊÕ´íÎó, ÖØĞÂ¿ªÊ¼ */
-                }
-                else
-                {
-                    g_usart_rx_sta |= 0x8000;   /* ÊÕµ½ÁË0x0a,±ê¼Ç½ÓÊÕÍê³ÉÁË */
-                }
-            }
-            else      /* »¹Ã»ÊÕµ½0x0d */
-            {
-                if (rxdata == 0x0d)
-                {
-                    g_usart_rx_sta |= 0x4000;   /* ±ê¼Ç½ÓÊÕµ½ÁË 0x0d */
-                }
-                else
-                {
-                    g_usart_rx_buf[g_usart_rx_sta & 0X3FFF] = rxdata;   /* ´æ´¢Êı¾İµ½ g_usart_rx_buf */
-                    g_usart_rx_sta++;
-
-                    if (g_usart_rx_sta > (USART_REC_LEN - 1))g_usart_rx_sta = 0;/* ½ÓÊÕÊı¾İÒç³ö, ÖØĞÂ¿ªÊ¼½ÓÊÕ */
-                }
-            }
+            g_usart_rx_ring[head] = rxdata;
+            g_usart_rx_head = next;
+        }
+        else
+        {
+            g_usart_rx_dropped++;
         }
     }
 
-    USART_UX->ICR |= 1 << 3;/* Çå³ıÒç³ö´íÎó, ·ñÔò¿ÉÄÜ»á¿¨ËÀÔÚ´®¿ÚÖĞ¶Ï·şÎñº¯ÊıÀïÃæ */
-#if SYS_SUPPORT_OS  /* Èç¹ûSYS_SUPPORT_OSÎªÕæ£¬ÔòĞèÒªÖ§³ÖOS. */
-    OSIntExit();
-#endif
+    USART_UX->ICR = (1U << 3) | (1U << 2) | (1U << 1);
 }
 #endif
 
 /**
- * @brief       ´®¿ÚX³õÊ¼»¯º¯Êı
- * @param       sclk: ´®¿ÚXµÄÊ±ÖÓÔ´ÆµÂÊ(µ¥Î»: MHz)
- *              ´®¿Ú1 ºÍ ´®¿Ú6 µÄÊ±ÖÓÔ´À´×Ô: rcc_pclk2 = 100Mhz
- *              ´®¿Ú2 - 5 / 7 / 8 µÄÊ±ÖÓÔ´À´×Ô: rcc_pclk1 = 100Mhz
- * @note        ×¢Òâ: ±ØĞëÉèÖÃÕıÈ·µÄsclk, ·ñÔò´®¿Ú²¨ÌØÂÊ¾Í»áÉèÖÃÒì³£.
- * @param       baudrate: ²¨ÌØÂÊ, ¸ù¾İ×Ô¼ºĞèÒªÉèÖÃ²¨ÌØÂÊÖµ
- * @retval      ÎŞ
+ * @brief       ä¸²å£Xåˆå§‹åŒ–å‡½æ•°
+ * @param       sclk: ä¸²å£Xçš„æ—¶é’Ÿæºé¢‘ç‡(å•ä½: MHz)
+ *              ä¸²å£1 å’Œ ä¸²å£6 çš„æ—¶é’Ÿæºæ¥è‡ª: rcc_pclk2 = 100Mhz
+ *              ä¸²å£2 - 5 / 7 / 8 çš„æ—¶é’Ÿæºæ¥è‡ª: rcc_pclk1 = 100Mhz
+ * @note        æ³¨æ„: å¿…é¡»è®¾ç½®æ­£ç¡®çš„sclk, å¦åˆ™ä¸²å£æ³¢ç‰¹ç‡å°±ä¼šè®¾ç½®å¼‚å¸¸.
+ * @param       baudrate: æ³¢ç‰¹ç‡, æ ¹æ®è‡ªå·±éœ€è¦è®¾ç½®æ³¢ç‰¹ç‡å€¼
+ * @retval      æ— 
  */
 void usart_init(uint32_t sclk, uint32_t baudrate)
 {
     uint32_t temp;
-    /* IO ¼° Ê±ÖÓÅäÖÃ */
-    USART_TX_GPIO_CLK_ENABLE(); /* Ê¹ÄÜ´®¿ÚTX½ÅÊ±ÖÓ */
-    USART_RX_GPIO_CLK_ENABLE(); /* Ê¹ÄÜ´®¿ÚRX½ÅÊ±ÖÓ */
-    USART_UX_CLK_ENABLE();      /* Ê¹ÄÜ´®¿ÚÊ±ÖÓ */
+    /* IO åŠ æ—¶é’Ÿé…ç½® */
+    USART_TX_GPIO_CLK_ENABLE(); /* ä½¿èƒ½ä¸²å£TXè„šæ—¶é’Ÿ */
+    USART_RX_GPIO_CLK_ENABLE(); /* ä½¿èƒ½ä¸²å£RXè„šæ—¶é’Ÿ */
+    USART_UX_CLK_ENABLE();      /* ä½¿èƒ½ä¸²å£æ—¶é’Ÿ */
 
     sys_gpio_set(USART_TX_GPIO_PORT, USART_TX_GPIO_PIN,
-                 SYS_GPIO_MODE_AF, SYS_GPIO_OTYPE_PP, SYS_GPIO_SPEED_MID, SYS_GPIO_PUPD_PU);/* ´®¿ÚTX½Å Ä£Ê½ÉèÖÃ */
+                 SYS_GPIO_MODE_AF, SYS_GPIO_OTYPE_PP, SYS_GPIO_SPEED_MID, SYS_GPIO_PUPD_PU);/* ä¸²å£TXè„š æ¨¡å¼è®¾ç½® */
 
     sys_gpio_set(USART_RX_GPIO_PORT, USART_RX_GPIO_PIN,
-                 SYS_GPIO_MODE_AF, SYS_GPIO_OTYPE_PP, SYS_GPIO_SPEED_MID, SYS_GPIO_PUPD_PU);/* ´®¿ÚRX½Å Ä£Ê½ÉèÖÃ */
+                 SYS_GPIO_MODE_AF, SYS_GPIO_OTYPE_PP, SYS_GPIO_SPEED_MID, SYS_GPIO_PUPD_PU);/* ä¸²å£RXè„š æ¨¡å¼è®¾ç½® */
 
-    sys_gpio_af_set(GPIOA, USART_TX_GPIO_PIN, USART_TX_GPIO_AF);   /* TX½Å ¸´ÓÃ¹¦ÄÜÑ¡Ôñ, ±ØĞëÉèÖÃÕıÈ· */
-    sys_gpio_af_set(GPIOA, USART_RX_GPIO_PIN, USART_RX_GPIO_AF);   /* RX½Å ¸´ÓÃ¹¦ÄÜÑ¡Ôñ, ±ØĞëÉèÖÃÕıÈ· */
+    sys_gpio_af_set(GPIOA, USART_TX_GPIO_PIN, USART_TX_GPIO_AF);   /* TXè„š å¤ç”¨åŠŸèƒ½é€‰æ‹©, å¿…é¡»è®¾ç½®æ­£ç¡® */
+    sys_gpio_af_set(GPIOA, USART_RX_GPIO_PIN, USART_RX_GPIO_AF);   /* RXè„š å¤ç”¨åŠŸèƒ½é€‰æ‹©, å¿…é¡»è®¾ç½®æ­£ç¡® */
 
-    temp = (sclk * 1000000 + baudrate / 2) / baudrate;  /* µÃµ½USARTDIV@OVER8 = 0, ²ÉÓÃËÄÉáÎåÈë¼ÆËã */
-    /* ²¨ÌØÂÊÉèÖÃ */
-    USART_UX->BRR = temp;       /* ²¨ÌØÂÊÉèÖÃ@OVER8 = 0 */
-    USART_UX->CR1 = 0;          /* ÇåÁãCR1¼Ä´æÆ÷ */
-    USART_UX->CR1 |= 0 << 28;   /* ÉèÖÃM1 = 0 */
-    USART_UX->CR1 |= 0 << 12;   /* ÉèÖÃM0 = 0 & M1 = 0, Ñ¡Ôñ8Î»×Ö³¤ */
-    USART_UX->CR1 |= 0 << 15;   /* ÉèÖÃOVER8 = 0, 16±¶¹ı²ÉÑù */
-    USART_UX->CR1 |= 1 << 3;    /* ´®¿Ú·¢ËÍÊ¹ÄÜ */
-#if USART_EN_RX  /* Èç¹ûÊ¹ÄÜÁË½ÓÊÕ */
-    /* Ê¹ÄÜ½ÓÊÕÖĞ¶Ï */
-    USART_UX->CR1 |= 1 << 2;    /* ´®¿Ú½ÓÊÕÊ¹ÄÜ */
-    USART_UX->CR1 |= 1 << 5;    /* ½ÓÊÕ»º³åÇø·Ç¿ÕÖĞ¶ÏÊ¹ÄÜ */
+    temp = (sclk * 1000000 + baudrate / 2) / baudrate;  /* å¾—åˆ°USARTDIV@OVER8 = 0, é‡‡ç”¨å››èˆäº”å…¥è®¡ç®— */
+    /* æ³¢ç‰¹ç‡è®¾ç½® */
+    USART_UX->BRR = temp;       /* æ³¢ç‰¹ç‡è®¾ç½®@OVER8 = 0 */
+    USART_UX->CR1 = 0;          /* æ¸…é›¶CR1å¯„å­˜å™¨ */
+    USART_UX->CR1 |= 0 << 28;   /* è®¾ç½®M1 = 0 */
+    USART_UX->CR1 |= 0 << 12;   /* è®¾ç½®M0 = 0 & M1 = 0, é€‰æ‹©8ä½å­—é•¿ */
+    USART_UX->CR1 |= 0 << 15;   /* è®¾ç½®OVER8 = 0, 16å€è¿‡é‡‡æ · */
+    USART_UX->CR1 |= 1 << 3;    /* ä¸²å£å‘é€ä½¿èƒ½ */
+#if USART_EN_RX  /* å¦‚æœä½¿èƒ½äº†æ¥æ”¶ */
+    /* ä½¿èƒ½æ¥æ”¶ä¸­æ–­ */
+    USART_UX->CR1 |= 1 << 2;    /* ä¸²å£æ¥æ”¶ä½¿èƒ½ */
+    USART_UX->CR1 |= 1 << 5;    /* æ¥æ”¶ç¼“å†²åŒºéç©ºä¸­æ–­ä½¿èƒ½ */
     sys_nvic_init(6, 0, USART_UX_IRQn, 4); /* FreeRTOS-compatible priority grouping. */
 #endif
-    USART_UX->CR1 |= 1 << 0;    /* ´®¿ÚÊ¹ÄÜ */
+    USART_UX->CR1 |= 1 << 0;    /* ä¸²å£ä½¿èƒ½ */
 }
+
 
 
 
