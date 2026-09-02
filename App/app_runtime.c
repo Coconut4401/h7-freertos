@@ -1,6 +1,7 @@
 #include "app_runtime.h"
 
 #include <stdint.h>
+#include <stdio.h>
 
 #include "app_draw.h"
 #include "app_files.h"
@@ -11,6 +12,8 @@
 #include "app_rtc.h"
 #include "app_screen.h"
 #include "app_settings.h"
+#include "app_health.h"
+#include "app_fault.h"
 #include "app_ui.h"
 #include "task.h"
 
@@ -528,6 +531,16 @@ void AppRuntimeTask(void *argument)
     runtime.active_application = -1;
 
     app_logs_init();
+    {
+        app_fault_record_t fault;
+        if (app_fault_get_pending(&fault))
+        {
+            char message[APP_LOG_MESSAGE_LENGTH];
+            snprintf(message, sizeof(message), "RESET TYPE %lu TASK %.15s",
+                     (unsigned long)fault.type, fault.task);
+            app_logs_add(APP_LOG_LEVEL_ERROR, "FAULT", message);
+        }
+    }
     app_screen_init();
     app_rtc_init();
     app_logs_add(APP_LOG_LEVEL_INFO, "RTC",
@@ -543,6 +556,7 @@ void AppRuntimeTask(void *argument)
 
     while (1)
     {
+        app_health_beat(APP_HEALTH_RUNTIME);
         if (xQueueReceive(context->event_queue, &event,
                           pdMS_TO_TICKS(50U)) == pdPASS)
         {
@@ -600,5 +614,6 @@ void AppRuntimeTask(void *argument)
 
         now = xTaskGetTickCount();
         app_runtime_update(&runtime, context, now);
+        app_fault_publish_pending();
     }
 }

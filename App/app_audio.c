@@ -7,6 +7,7 @@
 #include "queue.h"
 #include "task.h"
 #include "app_logs.h"
+#include "app_health.h"
 #include "./SYSTEM/sys/sys.h"
 
 #define AUDIO_COMMAND_QUEUE_LENGTH       6U
@@ -706,6 +707,7 @@ void AppAudioTask(void *argument)
 
     while (1)
     {
+        app_health_beat(APP_HEALTH_AUDIO);
         while (xQueueReceive(g_audio_command_queue, &command, 0U) == pdPASS)
         {
             app_audio_process_command(command);

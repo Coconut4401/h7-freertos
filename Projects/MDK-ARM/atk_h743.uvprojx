@@ -420,6 +420,36 @@
               <FilePath>..\..\App\app_input.h</FilePath>
             </File>
             <File>
+              <FileName>app_fault.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\App\app_fault.c</FilePath>
+            </File>
+            <File>
+              <FileName>app_fault.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\App\app_fault.h</FilePath>
+            </File>
+            <File>
+              <FileName>app_health.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\App\app_health.c</FilePath>
+            </File>
+            <File>
+              <FileName>app_health.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\App\app_health.h</FilePath>
+            </File>
+            <File>
+              <FileName>app_diagnostics.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\App\app_diagnostics.c</FilePath>
+            </File>
+            <File>
+              <FileName>app_diagnostics.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\App\app_diagnostics.h</FilePath>
+            </File>
+            <File>
               <FileName>app_mouse.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\App\app_mouse.c</FilePath>

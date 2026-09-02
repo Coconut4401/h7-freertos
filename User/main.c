@@ -18,6 +18,9 @@
 #include "app_monitor.h"
 #include "app_storage.h"
 #include "app_audio.h"
+#include "app_fault.h"
+#include "app_health.h"
+#include "app_diagnostics.h"
 
 #define LCD_WIDTH              800U
 #define LCD_HEIGHT             480U
@@ -32,9 +35,17 @@ static uint8_t touch_scan_first;
 static QueueHandle_t g_touch_queue;
 static TaskHandle_t g_input_task_handle;
 static TaskHandle_t g_runtime_task_handle;
+static TaskHandle_t g_monitor_task_handle;
+static TaskHandle_t g_storage_task_handle;
+static TaskHandle_t g_audio_task_handle;
+static TaskHandle_t g_health_task_handle;
 static app_input_task_context_t g_input_context;
 static app_runtime_context_t g_runtime_context;
 static app_monitor_context_t g_monitor_context;
+static app_health_context_t g_health_context;
+#if APP_DIAGNOSTIC_MODE != 0U
+static app_diagnostics_context_t g_diagnostics_context;
+#endif
 
 static uint8_t g_touch_ok;
 static uint8_t g_product_id[5];
@@ -215,22 +226,45 @@ static void app_tasks_start(void)
     g_monitor_context.input_task = g_input_task_handle;
     g_monitor_context.runtime_task = g_runtime_task_handle;
     if (xTaskCreate(AppMonitorTask, "MonitorTask", 512U,
-                    &g_monitor_context, 1U, NULL) != pdPASS)
+                    &g_monitor_context, 1U,
+                    &g_monitor_task_handle) != pdPASS)
     {
         fatal_blink(4U);
     }
 
     if (xTaskCreate(AppStorageTask, "StorageTask", 1024U,
-                    NULL, 4U, NULL) != pdPASS)
+                    NULL, 4U, &g_storage_task_handle) != pdPASS)
     {
         fatal_blink(4U);
     }
 
     if (xTaskCreate(AppAudioTask, "AudioTask", 1024U,
-                    NULL, 5U, NULL) != pdPASS)
+                    NULL, 5U, &g_audio_task_handle) != pdPASS)
     {
         fatal_blink(4U);
     }
+
+    g_health_context.input_task = g_input_task_handle;
+    g_health_context.runtime_task = g_runtime_task_handle;
+    g_health_context.monitor_task = g_monitor_task_handle;
+    g_health_context.storage_task = g_storage_task_handle;
+    g_health_context.audio_task = g_audio_task_handle;
+    if (xTaskCreate(AppHealthTask, "HealthTask", 512U,
+                    &g_health_context, 6U,
+                    &g_health_task_handle) != pdPASS)
+    {
+        fatal_blink(4U);
+    }
+
+#if APP_DIAGNOSTIC_MODE != 0U
+    g_diagnostics_context.input_queue = g_touch_queue;
+    g_diagnostics_context.input_task = g_input_task_handle;
+    if (xTaskCreate(AppDiagnosticsTask, "DiagTask", 256U,
+                    &g_diagnostics_context, 7U, NULL) != pdPASS)
+    {
+        fatal_blink(4U);
+    }
+#endif
 }
 
 int main(void)
@@ -240,6 +274,11 @@ int main(void)
     usart_init(100, 115200);
     led_init();
     mpu_memory_protection();
+    app_fault_init();
+    app_health_init();
+    SCB->CCR |= SCB_CCR_DIV_0_TRP_Msk;
+    SCB->SHCSR |= SCB_SHCSR_BUSFAULTENA_Msk |
+                  SCB_SHCSR_USGFAULTENA_Msk;
 
     printf("\r\nSTM32H743 micro desktop runtime\r\n");
     printf("System clock: 400 MHz\r\n");

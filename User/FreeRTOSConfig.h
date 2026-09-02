@@ -1,7 +1,9 @@
 #ifndef FREERTOS_CONFIG_H
 #define FREERTOS_CONFIG_H
 
-/* STM32H743 CPU‘À––∆µ¬  */
+#include "app_fault.h"
+
+/* STM32H743 CPUËøêË°åÈ¢ëÁéá */
 #define configCPU_CLOCK_HZ                     400000000UL
 #define configTICK_RATE_HZ                     1000U
 
@@ -22,14 +24,14 @@
 
 #define configUSE_IDLE_HOOK                    0
 #define configUSE_TICK_HOOK                    0
-#define configUSE_MALLOC_FAILED_HOOK           0
-#define configCHECK_FOR_STACK_OVERFLOW         0
+#define configUSE_MALLOC_FAILED_HOOK           1
+#define configCHECK_FOR_STACK_OVERFLOW         2
 
 #define configUSE_MUTEXES                      1
 #define configUSE_RECURSIVE_MUTEXES            1
 #define configUSE_COUNTING_SEMAPHORES          1
 #define configUSE_QUEUE_SETS                   1
-#define configQUEUE_REGISTRY_SIZE              8
+#define configQUEUE_REGISTRY_SIZE              12
 
 #define configUSE_TASK_NOTIFICATIONS           1
 #define configTASK_NOTIFICATION_ARRAY_ENTRIES  1
@@ -55,8 +57,9 @@
 #define INCLUDE_xTaskGetSchedulerState         1
 #define INCLUDE_xTaskGetCurrentTaskHandle      1
 #define INCLUDE_uxTaskGetStackHighWaterMark    1
+#define INCLUDE_xTimerGetTimerDaemonTaskHandle 1
 
-/* STM32H743æﬂ”–4∏ˆ÷–∂œ”≈œ»º∂Œª */
+/* STM32H743ÂÖ∑Êúâ4‰∏™‰∏≠Êñ≠‰ºòÂÖàÁ∫ß‰Ωç */
 #define configPRIO_BITS                        4
 #define configLIBRARY_LOWEST_INTERRUPT_PRIORITY        15
 #define configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY   5
@@ -67,7 +70,7 @@
 #define configMAX_SYSCALL_INTERRUPT_PRIORITY   \
     (configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY << (8 - configPRIO_BITS))
 
-/*  π”√STM32∆Ù∂ØŒƒº˛÷–µƒ±Í◊º÷–∂œ√˚≥∆ */
+/* ‰ΩøÁî®STM32ÂêØÂä®Êñá‰ª∂‰∏≠ÁöÑÊ†áÂáÜ‰∏≠Êñ≠ÂêçÁß∞ */
 #define vPortSVCHandler                        SVC_Handler
 #define xPortPendSVHandler                     PendSV_Handler
 #define xPortSysTickHandler                    SysTick_Handler
@@ -77,7 +80,7 @@
     {                                          \
         if ((x) == 0)                          \
         {                                      \
-            portDISABLE_INTERRUPTS();          \
+            app_fault_assert_and_reset(__FILE__, __LINE__); \
             for (;;)                           \
             {                                  \
             }                                  \

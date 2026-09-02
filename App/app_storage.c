@@ -8,6 +8,7 @@
 #include "queue.h"
 #include "task.h"
 #include "app_logs.h"
+#include "app_health.h"
 #include "ff.h"
 #include "./BSP/SDMMC/sdmmc_sdcard.h"
 
@@ -17,6 +18,8 @@
 #define STORAGE_LOG_QUEUE_LENGTH       2U
 #define STORAGE_SETTINGS_QUEUE_LENGTH  2U
 #define STORAGE_AUDIO_QUEUE_LENGTH     2U
+#define STORAGE_FAULT_QUEUE_LENGTH     1U
+#define STORAGE_RESPONSE_TIMEOUT_MS    100U
 
 #define STORAGE_BINARY_TEMP_PATH       "0:/~DRAW.TMP"
 #define STORAGE_BINARY_BACKUP_PATH     "0:/~DRAW.BAK"
@@ -24,6 +27,8 @@
 #define STORAGE_LOG_BACKUP_PATH        "0:/~LOG.BAK"
 #define STORAGE_SETTINGS_TEMP_PATH     "0:/~CFG.TMP"
 #define STORAGE_SETTINGS_BACKUP_PATH   "0:/~CFG.BAK"
+#define STORAGE_FAULT_TEMP_PATH        "0:/~FLT.TMP"
+#define STORAGE_FAULT_BACKUP_PATH      "0:/~FLT.BAK"
 
 static FATFS g_sd_filesystem;
 static QueueHandle_t g_request_queue;
@@ -32,6 +37,11 @@ static QueueHandle_t g_binary_response_queue;
 static QueueHandle_t g_log_response_queue;
 static QueueHandle_t g_settings_response_queue;
 static QueueHandle_t g_audio_response_queue;
+static QueueHandle_t g_fault_response_queue;
+static volatile uint32_t g_request_queue_peak;
+static volatile uint32_t g_request_queue_full_count;
+static volatile uint32_t g_response_drop_count;
+static volatile uint32_t g_filesystem_error_count;
 static volatile app_storage_state_t g_storage_state = APP_STORAGE_STATE_STARTING;
 static volatile uint32_t g_capacity_mb;
 static FIL g_audio_file;
@@ -404,9 +414,11 @@ static app_storage_result_t app_storage_map_result(FRESULT result)
     {
         return APP_STORAGE_RESULT_INVALID_NAME;
     }
-    if (result == FR_NOT_READY || result == FR_NOT_ENABLED ||
-        result == FR_NO_FILESYSTEM)
+    if (result == FR_DISK_ERR || result == FR_INT_ERR ||
+        result == FR_NOT_READY || result == FR_NOT_ENABLED ||
+        result == FR_NO_FILESYSTEM || result == FR_TIMEOUT)
     {
+        g_storage_state = APP_STORAGE_STATE_ERROR;
         return APP_STORAGE_RESULT_NOT_READY;
     }
     return APP_STORAGE_RESULT_IO_ERROR;
@@ -796,6 +808,11 @@ static void app_storage_write_binary(const app_storage_request_t *request,
         temporary_path = STORAGE_SETTINGS_TEMP_PATH;
         backup_path = STORAGE_SETTINGS_BACKUP_PATH;
     }
+    else if (request->operation == APP_STORAGE_OP_WRITE_FAULT)
+    {
+        temporary_path = STORAGE_FAULT_TEMP_PATH;
+        backup_path = STORAGE_FAULT_BACKUP_PATH;
+    }
     else
     {
         temporary_path = STORAGE_BINARY_TEMP_PATH;
@@ -951,9 +968,12 @@ BaseType_t app_storage_init(void)
                                      sizeof(app_storage_binary_response_t));
     g_audio_response_queue = xQueueCreate(STORAGE_AUDIO_QUEUE_LENGTH,
                                      sizeof(app_storage_audio_response_t));
+    g_fault_response_queue = xQueueCreate(STORAGE_FAULT_QUEUE_LENGTH,
+                                     sizeof(app_storage_binary_response_t));
     if (g_request_queue == NULL || g_response_queue == NULL ||
         g_binary_response_queue == NULL || g_log_response_queue == NULL ||
-        g_settings_response_queue == NULL || g_audio_response_queue == NULL)
+        g_settings_response_queue == NULL || g_audio_response_queue == NULL ||
+        g_fault_response_queue == NULL)
     {
         return pdFAIL;
     }
@@ -964,16 +984,31 @@ BaseType_t app_storage_init(void)
     vQueueAddToRegistry(g_log_response_queue, "StorageLogResponses");
     vQueueAddToRegistry(g_settings_response_queue, "StorageSettingsResponses");
     vQueueAddToRegistry(g_audio_response_queue, "StorageAudioResponses");
+    vQueueAddToRegistry(g_fault_response_queue, "StorageFaultResponses");
     return pdPASS;
 }
 
 BaseType_t app_storage_submit(const app_storage_request_t *request)
 {
+    BaseType_t result;
+    UBaseType_t depth;
+
     if (request == NULL || g_request_queue == NULL)
     {
         return pdFAIL;
     }
-    return xQueueSend(g_request_queue, request, 0U);
+    result = xQueueSend(g_request_queue, request, 0U);
+    if (result != pdPASS)
+    {
+        g_request_queue_full_count++;
+        return pdFAIL;
+    }
+    depth = uxQueueMessagesWaiting(g_request_queue);
+    if (depth > g_request_queue_peak)
+    {
+        g_request_queue_peak = depth;
+    }
+    return pdPASS;
 }
 
 BaseType_t app_storage_receive(app_storage_response_t *response)
@@ -1021,6 +1056,28 @@ BaseType_t app_storage_receive_audio(app_storage_audio_response_t *response)
     return xQueueReceive(g_audio_response_queue, response, 0U);
 }
 
+BaseType_t app_storage_receive_fault(app_storage_binary_response_t *response)
+{
+    if (response == NULL || g_fault_response_queue == NULL)
+    {
+        return pdFAIL;
+    }
+    return xQueueReceive(g_fault_response_queue, response, 0U);
+}
+
+void app_storage_get_stats(app_storage_stats_t *stats)
+{
+    if (stats != NULL)
+    {
+        stats->request_queue_peak = g_request_queue_peak;
+        stats->request_queue_full_count = g_request_queue_full_count;
+        stats->response_drop_count = g_response_drop_count;
+        stats->filesystem_error_count = g_filesystem_error_count;
+        stats->request_queue_depth = (g_request_queue != NULL) ?
+            (uint16_t)uxQueueMessagesWaiting(g_request_queue) : 0U;
+    }
+}
+
 app_storage_state_t app_storage_get_state(void)
 {
     return g_storage_state;
@@ -1057,7 +1114,9 @@ void AppStorageTask(void *argument)
 
     while (1)
     {
-        if (xQueueReceive(g_request_queue, &request, portMAX_DELAY) == pdPASS)
+        app_health_beat(APP_HEALTH_STORAGE);
+        if (xQueueReceive(g_request_queue, &request,
+                          pdMS_TO_TICKS(500U)) == pdPASS)
         {
             if (request.operation == APP_STORAGE_OP_AUDIO_SCAN ||
                 request.operation == APP_STORAGE_OP_AUDIO_OPEN ||
@@ -1065,33 +1124,82 @@ void AppStorageTask(void *argument)
                 request.operation == APP_STORAGE_OP_AUDIO_CLOSE)
             {
                 app_storage_process_audio(&request, &audio_response);
-                xQueueSend(g_audio_response_queue, &audio_response,
-                           portMAX_DELAY);
+                if (audio_response.result != APP_STORAGE_RESULT_OK)
+                {
+                    g_filesystem_error_count++;
+                }
+                if (xQueueSend(g_audio_response_queue, &audio_response,
+                    pdMS_TO_TICKS(STORAGE_RESPONSE_TIMEOUT_MS)) != pdPASS)
+                {
+                    g_response_drop_count++;
+                }
             }
             else if (request.operation == APP_STORAGE_OP_READ_BINARY ||
                 request.operation == APP_STORAGE_OP_WRITE_BINARY)
             {
                 app_storage_process_binary(&request, &binary_response);
-                xQueueSend(g_binary_response_queue, &binary_response,
-                           portMAX_DELAY);
+                if (binary_response.result != APP_STORAGE_RESULT_OK)
+                {
+                    g_filesystem_error_count++;
+                }
+                if (xQueueSend(g_binary_response_queue, &binary_response,
+                    pdMS_TO_TICKS(STORAGE_RESPONSE_TIMEOUT_MS)) != pdPASS)
+                {
+                    g_response_drop_count++;
+                }
             }
             else if (request.operation == APP_STORAGE_OP_WRITE_LOG)
             {
                 app_storage_process_binary(&request, &binary_response);
-                xQueueSend(g_log_response_queue, &binary_response,
-                           portMAX_DELAY);
+                if (binary_response.result != APP_STORAGE_RESULT_OK)
+                {
+                    g_filesystem_error_count++;
+                }
+                if (xQueueSend(g_log_response_queue, &binary_response,
+                    pdMS_TO_TICKS(STORAGE_RESPONSE_TIMEOUT_MS)) != pdPASS)
+                {
+                    g_response_drop_count++;
+                }
             }
             else if (request.operation == APP_STORAGE_OP_READ_SETTINGS ||
                      request.operation == APP_STORAGE_OP_WRITE_SETTINGS)
             {
                 app_storage_process_binary(&request, &binary_response);
-                xQueueSend(g_settings_response_queue, &binary_response,
-                           portMAX_DELAY);
+                if (binary_response.result != APP_STORAGE_RESULT_OK)
+                {
+                    g_filesystem_error_count++;
+                }
+                if (xQueueSend(g_settings_response_queue, &binary_response,
+                    pdMS_TO_TICKS(STORAGE_RESPONSE_TIMEOUT_MS)) != pdPASS)
+                {
+                    g_response_drop_count++;
+                }
+            }
+            else if (request.operation == APP_STORAGE_OP_WRITE_FAULT)
+            {
+                app_storage_process_binary(&request, &binary_response);
+                if (binary_response.result != APP_STORAGE_RESULT_OK)
+                {
+                    g_filesystem_error_count++;
+                }
+                if (xQueueSend(g_fault_response_queue, &binary_response,
+                    pdMS_TO_TICKS(STORAGE_RESPONSE_TIMEOUT_MS)) != pdPASS)
+                {
+                    g_response_drop_count++;
+                }
             }
             else
             {
                 app_storage_process(&request, &response);
-                xQueueSend(g_response_queue, &response, portMAX_DELAY);
+                if (response.result != APP_STORAGE_RESULT_OK)
+                {
+                    g_filesystem_error_count++;
+                }
+                if (xQueueSend(g_response_queue, &response,
+                    pdMS_TO_TICKS(STORAGE_RESPONSE_TIMEOUT_MS)) != pdPASS)
+                {
+                    g_response_drop_count++;
+                }
             }
         }
     }

@@ -34,7 +34,8 @@ typedef enum
     APP_STORAGE_OP_AUDIO_SCAN,
     APP_STORAGE_OP_AUDIO_OPEN,
     APP_STORAGE_OP_AUDIO_READ,
-    APP_STORAGE_OP_AUDIO_CLOSE
+    APP_STORAGE_OP_AUDIO_CLOSE,
+    APP_STORAGE_OP_WRITE_FAULT
 } app_storage_operation_t;
 
 typedef enum
@@ -104,6 +105,15 @@ typedef struct
     app_storage_file_t files[APP_STORAGE_MAX_FILES];
 } app_storage_response_t;
 
+typedef struct
+{
+    uint32_t request_queue_peak;
+    uint32_t request_queue_full_count;
+    uint32_t response_drop_count;
+    uint32_t filesystem_error_count;
+    uint16_t request_queue_depth;
+} app_storage_stats_t;
+
 BaseType_t app_storage_init(void);
 BaseType_t app_storage_submit(const app_storage_request_t *request);
 BaseType_t app_storage_receive(app_storage_response_t *response);
@@ -111,6 +121,8 @@ BaseType_t app_storage_receive_binary(app_storage_binary_response_t *response);
 BaseType_t app_storage_receive_log(app_storage_binary_response_t *response);
 BaseType_t app_storage_receive_settings(app_storage_binary_response_t *response);
 BaseType_t app_storage_receive_audio(app_storage_audio_response_t *response);
+BaseType_t app_storage_receive_fault(app_storage_binary_response_t *response);
+void app_storage_get_stats(app_storage_stats_t *stats);
 app_storage_state_t app_storage_get_state(void);
 uint32_t app_storage_get_capacity_mb(void);
 void AppStorageTask(void *argument);

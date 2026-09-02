@@ -52,6 +52,8 @@ typedef struct
 {
     uint32_t sent_count;
     uint32_t dropped_count;
+    uint32_t throttled_move_count;
+    uint32_t critical_drop_count;
 } app_input_stats_t;
 
 void AppInputTask(void *argument);

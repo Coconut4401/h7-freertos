@@ -2060,13 +2060,13 @@ void app_ui_show_monitor(const app_monitor_snapshot_t *snapshot)
 {
     app_ui_draw_application_header("SYSTEM MONITOR");
     app_ui_draw_metric_panel(40U, 72U, "UPTIME");
-    app_ui_draw_metric_panel(410U, 72U, "FREE HEAP (BYTES)");
+    app_ui_draw_metric_panel(410U, 72U, "HEAP NOW / MIN (BYTES)");
     app_ui_draw_metric_panel(40U, 182U, "INPUT EVENTS");
-    app_ui_draw_metric_panel(410U, 182U, "DROPPED EVENTS");
-    app_ui_draw_metric_panel(40U, 292U, "QUEUE NOW / PEAK");
-    app_ui_draw_metric_panel(410U, 292U, "STACK FREE I / G / M");
-    lcd_fill(40U, 390U, 759U, 439U, UI_COLOR_PANEL_DARK);
-    lcd_draw_rectangle(40U, 390U, 759U, 439U, UI_COLOR_MUTED);
+    app_ui_draw_metric_panel(410U, 182U, "DROP TOTAL / CRITICAL");
+    app_ui_draw_metric_panel(40U, 292U, "INPUT QUEUE NOW / PEAK");
+    app_ui_draw_metric_panel(410U, 292U, "STACK WORDS I/G/S/A/M + H/T");
+    lcd_fill(40U, 378U, 759U, 459U, UI_COLOR_PANEL_DARK);
+    lcd_draw_rectangle(40U, 378U, 759U, 459U, UI_COLOR_MUTED);
     app_ui_update_monitor(snapshot);
 }
 
@@ -2097,47 +2097,96 @@ void app_ui_update_monitor(const app_monitor_snapshot_t *snapshot)
     app_ui_format_time(snapshot->uptime_seconds, time_text);
     app_ui_show_text(64U, 116U, 190U, 24U, 24U, time_text, WHITE);
     app_ui_show_u32(434U, 116U, snapshot->free_heap_bytes, 24U, GREEN);
+    app_ui_show_text(570U, 116U, 24U, 24U, 24U, "/", UI_COLOR_MUTED);
+    app_ui_show_u32(598U, 116U, snapshot->minimum_heap_bytes, 24U,
+                    snapshot->minimum_heap_bytes < 32768U ? YELLOW : GREEN);
     app_ui_show_u32(64U, 226U, snapshot->input_event_count, 24U, WHITE);
     app_ui_show_u32(434U, 226U, snapshot->dropped_event_count, 24U,
-                    snapshot->dropped_event_count ? RED : GREEN);
+                    snapshot->critical_drop_count ? RED :
+                    (snapshot->dropped_event_count ? YELLOW : GREEN));
+    app_ui_show_text(570U, 226U, 24U, 24U, 24U, "/", UI_COLOR_MUTED);
+    app_ui_show_u32(598U, 226U, snapshot->critical_drop_count, 24U,
+                    snapshot->critical_drop_count ? RED : GREEN);
 
     app_ui_show_u32(64U, 336U, snapshot->queue_depth, 24U, WHITE);
     app_ui_show_text(120U, 336U, 24U, 24U, 24U, "/", UI_COLOR_MUTED);
     app_ui_show_u32(148U, 336U, snapshot->queue_high_water, 24U, WHITE);
 
-    app_ui_show_u32(434U, 336U, snapshot->input_stack_watermark, 16U, WHITE);
-    app_ui_show_text(482U, 336U, 16U, 16U, 16U, "/", UI_COLOR_MUTED);
-    app_ui_show_u32(502U, 336U, snapshot->runtime_stack_watermark, 16U, WHITE);
-    app_ui_show_text(550U, 336U, 16U, 16U, 16U, "/", UI_COLOR_MUTED);
-    app_ui_show_u32(570U, 336U, snapshot->monitor_stack_watermark, 16U, WHITE);
+    app_ui_show_u32(434U, 336U, snapshot->input_stack_watermark, 16U,
+                    snapshot->input_stack_watermark < 128U ? RED : WHITE);
+    app_ui_show_text(482U, 336U, 8U, 16U, 16U, "/", UI_COLOR_MUTED);
+    app_ui_show_u32(494U, 336U, snapshot->runtime_stack_watermark, 16U,
+                    snapshot->runtime_stack_watermark < 128U ? RED : WHITE);
+    app_ui_show_text(542U, 336U, 8U, 16U, 16U, "/", UI_COLOR_MUTED);
+    app_ui_show_u32(554U, 336U, snapshot->storage_stack_watermark, 16U,
+                    snapshot->storage_stack_watermark < 128U ? RED : WHITE);
+    app_ui_show_text(602U, 336U, 8U, 16U, 16U, "/", UI_COLOR_MUTED);
+    app_ui_show_u32(614U, 336U, snapshot->audio_stack_watermark, 16U,
+                    snapshot->audio_stack_watermark < 128U ? RED : WHITE);
+    app_ui_show_text(662U, 336U, 8U, 16U, 16U, "/", UI_COLOR_MUTED);
+    app_ui_show_u32(674U, 336U, snapshot->monitor_stack_watermark, 16U,
+                    snapshot->monitor_stack_watermark < 128U ? RED : WHITE);
+    app_ui_show_text(434U, 352U, 24U, 16U, 16U, "H/T", UI_COLOR_MUTED);
+    app_ui_show_u32(466U, 352U, snapshot->health_stack_watermark, 16U,
+                    snapshot->health_stack_watermark < 128U ? RED : WHITE);
+    app_ui_show_text(514U, 352U, 8U, 16U, 16U, "/", UI_COLOR_MUTED);
+    app_ui_show_u32(526U, 352U, snapshot->timer_stack_watermark, 16U,
+                    snapshot->timer_stack_watermark < 128U ? RED : WHITE);
 
-    lcd_fill(48U, 396U, 751U, 433U, UI_COLOR_PANEL_DARK);
-    app_ui_show_text(52U, 397U, 48U, 16U, 16U, "MOUSE", UI_COLOR_MUTED);
-    app_ui_show_text(104U, 397U, 64U, 16U, 16U,
+    lcd_fill(48U, 384U, 751U, 453U, UI_COLOR_PANEL_DARK);
+    app_ui_show_text(52U, 385U, 48U, 16U, 16U, "MOUSE", UI_COLOR_MUTED);
+    app_ui_show_text(104U, 385U, 64U, 16U, 16U,
                      snapshot->ch9350_connection_known ?
                          (snapshot->ch9350_mouse_connected ? "ONLINE" : "OFFLINE") :
                          "WAIT",
                      snapshot->ch9350_connection_known ?
                          (snapshot->ch9350_mouse_connected ? GREEN : RED) :
                          YELLOW);
-    app_ui_show_text(184U, 397U, 56U, 16U, 16U, "REPORT", UI_COLOR_MUTED);
-    app_ui_show_u32(244U, 397U, snapshot->ch9350_mouse_report_count, 16U, WHITE);
-    app_ui_show_text(360U, 397U, 40U, 16U, 16U, "STATE", UI_COLOR_MUTED);
-    app_ui_show_u32(404U, 397U, snapshot->ch9350_state_frame_count, 16U, WHITE);
-    app_ui_show_text(520U, 397U, 32U, 16U, 16U, "C/D", UI_COLOR_MUTED);
-    app_ui_show_u32(556U, 397U, snapshot->ch9350_connect_event_count, 16U, WHITE);
-    app_ui_show_text(636U, 397U, 8U, 16U, 16U, "/", UI_COLOR_MUTED);
-    app_ui_show_u32(648U, 397U, snapshot->ch9350_disconnect_event_count, 16U, WHITE);
+    app_ui_show_text(184U, 385U, 56U, 16U, 16U, "REPORT", UI_COLOR_MUTED);
+    app_ui_show_u32(244U, 385U, snapshot->ch9350_mouse_report_count, 16U, WHITE);
+    app_ui_show_text(360U, 385U, 40U, 16U, 16U, "STATE", UI_COLOR_MUTED);
+    app_ui_show_u32(404U, 385U, snapshot->ch9350_state_frame_count, 16U, WHITE);
+    app_ui_show_text(520U, 385U, 32U, 16U, 16U, "C/D", UI_COLOR_MUTED);
+    app_ui_show_u32(556U, 385U, snapshot->ch9350_connect_event_count, 16U, WHITE);
+    app_ui_show_text(636U, 385U, 8U, 16U, 16U, "/", UI_COLOR_MUTED);
+    app_ui_show_u32(648U, 385U, snapshot->ch9350_disconnect_event_count, 16U, WHITE);
 
-    app_ui_show_text(52U, 417U, 88U, 16U, 16U, "ERR F/S/U", UI_COLOR_MUTED);
-    app_ui_show_u32(144U, 417U, snapshot->ch9350_discarded_frame_count, 16U,
+    app_ui_show_text(52U, 407U, 88U, 16U, 16U, "ERR F/S/U", UI_COLOR_MUTED);
+    app_ui_show_u32(144U, 407U, snapshot->ch9350_discarded_frame_count, 16U,
                     snapshot->ch9350_discarded_frame_count ? RED : GREEN);
-    app_ui_show_text(224U, 417U, 8U, 16U, 16U, "/", UI_COLOR_MUTED);
-    app_ui_show_u32(236U, 417U, snapshot->ch9350_sync_error_count, 16U,
+    app_ui_show_text(224U, 407U, 8U, 16U, 16U, "/", UI_COLOR_MUTED);
+    app_ui_show_u32(236U, 407U, snapshot->ch9350_sync_error_count, 16U,
                     snapshot->ch9350_sync_error_count ? RED : GREEN);
-    app_ui_show_text(316U, 417U, 8U, 16U, 16U, "/", UI_COLOR_MUTED);
-    app_ui_show_u32(328U, 417U, snapshot->ch9350_uart_dropped_count, 16U,
+    app_ui_show_text(316U, 407U, 8U, 16U, 16U, "/", UI_COLOR_MUTED);
+    app_ui_show_u32(328U, 407U, snapshot->ch9350_uart_dropped_count, 16U,
                     snapshot->ch9350_uart_dropped_count ? RED : GREEN);
+    app_ui_show_text(420U, 407U, 48U, 16U, 16U, "HEALTH", UI_COLOR_MUTED);
+    app_ui_show_u32(472U, 407U, snapshot->healthy_task_mask, 16U,
+                    snapshot->task_timeout_mask ? RED : GREEN);
+    app_ui_show_text(512U, 407U, 8U, 16U, 16U, "/", UI_COLOR_MUTED);
+    app_ui_show_u32(524U, 407U, snapshot->task_timeout_mask, 16U,
+                    snapshot->task_timeout_mask ? RED : GREEN);
+    app_ui_show_text(580U, 407U, 32U, 16U, 16U, "WDG", UI_COLOR_MUTED);
+    app_ui_show_text(616U, 407U, 32U, 16U, 16U,
+                     snapshot->watchdog_enabled ? "ON" : "OFF",
+                     snapshot->watchdog_enabled ? GREEN : YELLOW);
+    app_ui_show_text(664U, 407U, 24U, 16U, 16U, "RST", UI_COLOR_MUTED);
+    app_ui_show_u32(692U, 407U, snapshot->last_fault_type, 16U,
+                    snapshot->last_fault_type ? RED : GREEN);
+
+    app_ui_show_text(52U, 429U, 56U, 16U, 16U, "SD Q/P", UI_COLOR_MUTED);
+    app_ui_show_u32(112U, 429U, snapshot->storage_queue_depth, 16U, WHITE);
+    app_ui_show_text(152U, 429U, 8U, 16U, 16U, "/", UI_COLOR_MUTED);
+    app_ui_show_u32(164U, 429U, snapshot->storage_queue_peak, 16U, WHITE);
+    app_ui_show_text(236U, 429U, 64U, 16U, 16U, "QFULL", UI_COLOR_MUTED);
+    app_ui_show_u32(292U, 429U, snapshot->storage_queue_full_count, 16U,
+                    snapshot->storage_queue_full_count ? RED : GREEN);
+    app_ui_show_text(396U, 429U, 72U, 16U, 16U, "RESPERR", UI_COLOR_MUTED);
+    app_ui_show_u32(468U, 429U, snapshot->storage_response_drop_count, 16U,
+                    snapshot->storage_response_drop_count ? RED : GREEN);
+    app_ui_show_text(564U, 429U, 48U, 16U, 16U, "FSERR", UI_COLOR_MUTED);
+    app_ui_show_u32(616U, 429U, snapshot->storage_error_count, 16U,
+                    snapshot->storage_error_count ? RED : GREEN);
 
     if (restore_cursor)
     {

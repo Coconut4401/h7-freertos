@@ -3,10 +3,13 @@
 #include "./BSP/TOUCH/touch.h"
 #include "./BSP/CH9350/ch9350.h"
 #include "app_mouse.h"
+#include "app_health.h"
 #include "task.h"
 
 static volatile uint32_t g_sent_count;
 static volatile uint32_t g_dropped_count;
+static volatile uint32_t g_throttled_move_count;
+static volatile uint32_t g_critical_drop_count;
 static volatile uint8_t g_cursor_sensitivity = APP_INPUT_SENSITIVITY_NORMAL;
 
 static uint16_t app_input_movement_threshold(void)
@@ -25,12 +28,29 @@ static uint16_t app_input_movement_threshold(void)
 BaseType_t app_input_post_event(QueueHandle_t queue,
                                 const app_input_event_t *event)
 {
-    if (xQueueSend(queue, event, 0) == pdPASS)
+    if (queue == NULL || event == NULL)
+    {
+        return pdFAIL;
+    }
+    if (event->type == APP_INPUT_EVENT_MOVE &&
+        uxQueueSpacesAvailable(queue) <= 4U)
+    {
+        g_dropped_count++;
+        g_throttled_move_count++;
+        return pdFAIL;
+    }
+    if (xQueueSend(queue, event,
+                   (event->type == APP_INPUT_EVENT_MOVE) ? 0U :
+                   pdMS_TO_TICKS(20U)) == pdPASS)
     {
         g_sent_count++;
         return pdPASS;
     }
     g_dropped_count++;
+    if (event->type != APP_INPUT_EVENT_MOVE)
+    {
+        g_critical_drop_count++;
+    }
     return pdFAIL;
 }
 
@@ -40,6 +60,8 @@ void app_input_get_stats(app_input_stats_t *stats)
     {
         stats->sent_count = g_sent_count;
         stats->dropped_count = g_dropped_count;
+        stats->throttled_move_count = g_throttled_move_count;
+        stats->critical_drop_count = g_critical_drop_count;
     }
 }
 
@@ -82,6 +104,7 @@ void AppInputTask(void *argument)
 
     while (1)
     {
+        app_health_beat(APP_HEALTH_INPUT);
         if (context->touch_available)
         {
             tp_dev.scan(0);

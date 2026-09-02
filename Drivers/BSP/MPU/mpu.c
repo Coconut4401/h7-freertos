@@ -4,6 +4,7 @@
 #include "./SYSTEM/delay/delay.h"
 #include "./BSP/LED/led.h"
 #include "./BSP/MPU/mpu.h"
+#include "app_fault.h"
 
 
 /**
@@ -132,14 +133,16 @@ void mpu_memory_protection(void)
  * @param       无
  * @retval      nbytes以2为底的指数值
  */
-void MemManage_Handler(void)
+__attribute__((naked)) void MemManage_Handler(void)
 {
-    LED1(0);                            /* 点亮LED1(GREEN LED) */
-    printf("Mem Access Error!!\r\n");   /* 输出错误信息 */
-    delay_ms(1000);
-    printf("Soft Reseting...\r\n");     /* 提示软件重启 */
-    delay_ms(1000);
-    sys_soft_reset();                   /* 软复位 */
+    __asm volatile(
+        "tst lr, #4\n"
+        "ite eq\n"
+        "mrseq r0, msp\n"
+        "mrsne r0, psp\n"
+        "mov r1, lr\n"
+        "movs r2, #7\n"
+        "b app_fault_exception_frame\n");
 }
 
 
