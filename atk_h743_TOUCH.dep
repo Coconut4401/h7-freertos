@@ -1,0 +1,684 @@
+Dependencies for Project 'atk_h743', Target 'TOUCH': (DO NOT MODIFY !)
+CompilerVersion: 6240000::V6.24::ARMCLANG
+F (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Source\Templates\arm\startup_stm32h743xx.s)(0x6423D538)(--cpu Cortex-M7.fp.dp -g --diag_suppress=A1950W-I"D:\stm app\Keil\STM32H7xx_DFP\4.1.3\Drivers\CMSIS\Device\ST\STM32H7xx\Include"--pd "__UVISION_VERSION SETA 543"--pd "STM32H743xx SETA 1"--list ..\..\output\startup_stm32h743xx.lst--xref -o ..\..\output\startup_stm32h743xx.o--depend ..\..\output\startup_stm32h743xx.d)
+F (..\..\User\main.c)(0x6A997652)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/main.o -MMD)
+I (..\..\Drivers\.\SYSTEM\sys\sys.h)(0x6A997652)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h7xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h743xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Include\core_cm7.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\system_stm32h7xx.h)(0x6423D538)
+I (..\..\Drivers\.\SYSTEM\usart\usart.h)(0x6A997652)
+I (..\..\Drivers\.\SYSTEM\usart\usart_rx.h)(0x6A997652)
+I (..\..\Drivers\.\SYSTEM\delay\delay.h)(0x6A997652)
+I (..\..\Drivers\.\BSP\LED\led.h)(0x6A997652)
+I (..\..\Drivers\.\BSP\MPU\mpu.h)(0x6A997652)
+I (..\..\Drivers\.\BSP\SDRAM\sdram.h)(0x6A997652)
+I (..\..\Drivers\.\BSP\LCD\lcd.h)(0x6A997652)
+I (..\..\Drivers\.\BSP\TOUCH\touch.h)(0x6A997652)
+I (..\..\Drivers\.\BSP\TOUCH\gt9xxx.h)(0x6A997652)
+I (..\..\Drivers\.\BSP\TOUCH\ft5206.h)(0x6A997652)
+I (..\..\Drivers\.\BSP\TOUCH\ctiic.h)(0x6A997652)
+I (..\..\Drivers\.\BSP\IIC\myiic.h)(0x6A997652)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\FreeRTOS.h)(0x6A7593E6)
+I (..\..\User\FreeRTOSConfig.h)(0x6A997652)
+I (..\..\App\app_fault.h)(0x6A997652)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\projdefs.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\portable.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\deprecated_definitions.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\portable\GCC\ARM_CM7\r0p1\portmacro.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\mpu_wrappers.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\task.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\list.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\queue.h)(0x6A7593E6)
+I (..\..\App\app_input.h)(0x6A9FE08B)
+I (..\..\App\app_runtime.h)(0x6A997652)
+I (..\..\App\app_monitor.h)(0x6A9FD9A6)
+I (..\..\App\app_storage.h)(0x6A997652)
+I (..\..\App\app_audio.h)(0x6A997652)
+I (..\..\App\app_health.h)(0x6A997652)
+I (..\..\App\app_diagnostics.h)(0x6A99765C)
+F (..\..\User\FreeRTOSConfig.h)(0x6A997652)()
+F (..\..\App\app_input.c)(0x6A9FE08B)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/app_input.o -MMD)
+I (..\..\App\app_input.h)(0x6A9FE08B)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\FreeRTOS.h)(0x6A7593E6)
+I (..\..\User\FreeRTOSConfig.h)(0x6A997652)
+I (..\..\App\app_fault.h)(0x6A997652)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\projdefs.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\portable.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\deprecated_definitions.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\portable\GCC\ARM_CM7\r0p1\portmacro.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\mpu_wrappers.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\queue.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\task.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\list.h)(0x6A7593E6)
+I (..\..\Drivers\.\BSP\TOUCH\touch.h)(0x6A997652)
+I (..\..\Drivers\.\SYSTEM\sys\sys.h)(0x6A997652)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h7xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h743xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Include\core_cm7.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\system_stm32h7xx.h)(0x6423D538)
+I (..\..\Drivers\.\BSP\TOUCH\gt9xxx.h)(0x6A997652)
+I (..\..\Drivers\.\BSP\TOUCH\ft5206.h)(0x6A997652)
+I (..\..\Drivers\.\BSP\CH9350\ch9350.h)(0x6A997652)
+I (..\..\App\app_mouse.h)(0x6A997652)
+I (..\..\App\app_health.h)(0x6A997652)
+F (..\..\App\app_input.h)(0x6A9FE08B)()
+F (..\..\App\app_fault.c)(0x6A997652)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/app_fault.o -MMD)
+I (..\..\App\app_fault.h)(0x6A997652)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\FreeRTOS.h)(0x6A7593E6)
+I (..\..\User\FreeRTOSConfig.h)(0x6A997652)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\projdefs.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\portable.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\deprecated_definitions.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\portable\GCC\ARM_CM7\r0p1\portmacro.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\mpu_wrappers.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\task.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\list.h)(0x6A7593E6)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h743xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Include\core_cm7.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\system_stm32h7xx.h)(0x6423D538)
+I (..\..\App\app_logs.h)(0x6A997652)
+I (..\..\App\app_input.h)(0x6A9FE08B)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\queue.h)(0x6A7593E6)
+I (..\..\App\app_storage.h)(0x6A997652)
+F (..\..\App\app_fault.h)(0x6A997652)()
+F (..\..\App\app_health.c)(0x6A9D33DC)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/app_health.o -MMD)
+I (..\..\App\app_health.h)(0x6A997652)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\FreeRTOS.h)(0x6A7593E6)
+I (..\..\User\FreeRTOSConfig.h)(0x6A997652)
+I (..\..\App\app_fault.h)(0x6A997652)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\projdefs.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\portable.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\deprecated_definitions.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\portable\GCC\ARM_CM7\r0p1\portmacro.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\mpu_wrappers.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\task.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\list.h)(0x6A7593E6)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h743xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Include\core_cm7.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\system_stm32h7xx.h)(0x6423D538)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\timers.h)(0x6A7593E6)
+F (..\..\App\app_health.h)(0x6A997652)()
+F (..\..\App\app_diagnostics.c)(0x6A997661)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/app_diagnostics.o -MMD)
+I (..\..\App\app_diagnostics.h)(0x6A99765C)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\FreeRTOS.h)(0x6A7593E6)
+I (..\..\User\FreeRTOSConfig.h)(0x6A997652)
+I (..\..\App\app_fault.h)(0x6A997652)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\projdefs.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\portable.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\deprecated_definitions.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\portable\GCC\ARM_CM7\r0p1\portmacro.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\mpu_wrappers.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\queue.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\task.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\list.h)(0x6A7593E6)
+I (..\..\App\app_input.h)(0x6A9FE08B)
+I (..\..\App\app_logs.h)(0x6A997652)
+F (..\..\App\app_diagnostics.h)(0x6A99765C)()
+F (..\..\App\app_mouse.c)(0x6A997652)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/app_mouse.o -MMD)
+I (..\..\App\app_mouse.h)(0x6A997652)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\FreeRTOS.h)(0x6A7593E6)
+I (..\..\User\FreeRTOSConfig.h)(0x6A997652)
+I (..\..\App\app_fault.h)(0x6A997652)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\projdefs.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\portable.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\deprecated_definitions.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\portable\GCC\ARM_CM7\r0p1\portmacro.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\mpu_wrappers.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\queue.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\task.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\list.h)(0x6A7593E6)
+I (..\..\App\app_input.h)(0x6A9FE08B)
+I (..\..\Drivers\.\BSP\CH9350\ch9350.h)(0x6A997652)
+F (..\..\App\app_mouse.h)(0x6A997652)()
+F (..\..\App\app_ui.c)(0x6A9FF0DF)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/app_ui.o -MMD)
+I (..\..\App\app_ui.h)(0x6A9FE228)
+I (..\..\App\app_logs.h)(0x6A997652)
+I (..\..\App\app_input.h)(0x6A9FE08B)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\FreeRTOS.h)(0x6A7593E6)
+I (..\..\User\FreeRTOSConfig.h)(0x6A997652)
+I (..\..\App\app_fault.h)(0x6A997652)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\projdefs.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\portable.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\deprecated_definitions.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\portable\GCC\ARM_CM7\r0p1\portmacro.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\mpu_wrappers.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\queue.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\task.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\list.h)(0x6A7593E6)
+I (..\..\App\app_monitor.h)(0x6A9FD9A6)
+I (..\..\App\app_rtc.h)(0x6A997652)
+I (..\..\App\app_storage.h)(0x6A997652)
+I (..\..\App\app_audio.h)(0x6A997652)
+I (..\..\Drivers\.\BSP\LCD\lcd.h)(0x6A997652)
+I (..\..\Drivers\.\SYSTEM\sys\sys.h)(0x6A997652)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h7xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h743xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Include\core_cm7.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\system_stm32h7xx.h)(0x6423D538)
+F (..\..\App\app_ui.h)(0x6A9FE228)()
+F (..\..\App\app_runtime.c)(0x6A9FE228)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/app_runtime.o -MMD)
+I (..\..\App\app_runtime.h)(0x6A997652)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\FreeRTOS.h)(0x6A7593E6)
+I (..\..\User\FreeRTOSConfig.h)(0x6A997652)
+I (..\..\App\app_fault.h)(0x6A997652)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\projdefs.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\portable.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\deprecated_definitions.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\portable\GCC\ARM_CM7\r0p1\portmacro.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\mpu_wrappers.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\queue.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\task.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\list.h)(0x6A7593E6)
+I (..\..\App\app_draw.h)(0x6A997652)
+I (..\..\App\app_input.h)(0x6A9FE08B)
+I (..\..\App\app_files.h)(0x6A997652)
+I (..\..\App\app_logs.h)(0x6A997652)
+I (..\..\App\app_music.h)(0x6A997652)
+I (..\..\App\app_monitor.h)(0x6A9FD9A6)
+I (..\..\App\app_rtc.h)(0x6A997652)
+I (..\..\App\app_screen.h)(0x6A997652)
+I (..\..\App\app_settings.h)(0x6A997652)
+I (..\..\App\app_health.h)(0x6A997652)
+I (..\..\App\app_ui.h)(0x6A9FE228)
+I (..\..\App\app_storage.h)(0x6A997652)
+I (..\..\App\app_audio.h)(0x6A997652)
+F (..\..\App\app_runtime.h)(0x6A997652)()
+F (..\..\App\app_monitor.c)(0x6A9FDA79)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/app_monitor.o -MMD)
+I (..\..\App\app_monitor.h)(0x6A9FD9A6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\FreeRTOS.h)(0x6A7593E6)
+I (..\..\User\FreeRTOSConfig.h)(0x6A997652)
+I (..\..\App\app_fault.h)(0x6A997652)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\projdefs.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\portable.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\deprecated_definitions.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\portable\GCC\ARM_CM7\r0p1\portmacro.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\mpu_wrappers.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\queue.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\task.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\list.h)(0x6A7593E6)
+I (..\..\Drivers\.\BSP\CH9350\ch9350.h)(0x6A997652)
+I (..\..\Drivers\.\BSP\LED\led.h)(0x6A997652)
+I (..\..\Drivers\.\SYSTEM\sys\sys.h)(0x6A997652)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h7xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h743xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Include\core_cm7.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\system_stm32h7xx.h)(0x6423D538)
+I (..\..\App\app_input.h)(0x6A9FE08B)
+I (..\..\App\app_settings.h)(0x6A997652)
+I (..\..\App\app_health.h)(0x6A997652)
+I (..\..\App\app_storage.h)(0x6A997652)
+I (..\..\App\app_logs.h)(0x6A997652)
+F (..\..\App\app_monitor.h)(0x6A9FD9A6)()
+F (..\..\App\app_storage.c)(0x6A9E28ED)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/app_storage.o -MMD)
+I (..\..\App\app_storage.h)(0x6A997652)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\FreeRTOS.h)(0x6A7593E6)
+I (..\..\User\FreeRTOSConfig.h)(0x6A997652)
+I (..\..\App\app_fault.h)(0x6A997652)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\projdefs.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\portable.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\deprecated_definitions.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\portable\GCC\ARM_CM7\r0p1\portmacro.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\mpu_wrappers.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\queue.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\task.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\list.h)(0x6A7593E6)
+I (..\..\App\app_logs.h)(0x6A997652)
+I (..\..\App\app_input.h)(0x6A9FE08B)
+I (..\..\App\app_health.h)(0x6A997652)
+I (..\..\Middlewares\FatFs\ff.h)(0x6A7F2AD5)
+I (..\..\Middlewares\FatFs\integer.h)(0x6A7F2ADF)
+I (..\..\Middlewares\FatFs\ffconf.h)(0x6A7F2B62)
+I (..\..\Drivers\.\BSP\SDMMC\sdmmc_sdcard.h)(0x6A997652)
+I (..\..\Drivers\.\SYSTEM\sys\sys.h)(0x6A997652)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h7xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h743xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Include\core_cm7.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\system_stm32h7xx.h)(0x6423D538)
+F (..\..\App\app_audio.c)(0x6A997652)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/app_audio.o -MMD)
+I (..\..\App\app_audio.h)(0x6A997652)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\FreeRTOS.h)(0x6A7593E6)
+I (..\..\User\FreeRTOSConfig.h)(0x6A997652)
+I (..\..\App\app_fault.h)(0x6A997652)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\projdefs.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\portable.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\deprecated_definitions.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\portable\GCC\ARM_CM7\r0p1\portmacro.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\mpu_wrappers.h)(0x6A7593E6)
+I (..\..\App\app_storage.h)(0x6A997652)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\queue.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\task.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\list.h)(0x6A7593E6)
+I (..\..\App\app_logs.h)(0x6A997652)
+I (..\..\App\app_input.h)(0x6A9FE08B)
+I (..\..\App\app_health.h)(0x6A997652)
+I (..\..\Drivers\.\SYSTEM\sys\sys.h)(0x6A997652)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h7xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h743xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Include\core_cm7.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\system_stm32h7xx.h)(0x6423D538)
+F (..\..\App\app_music.c)(0x6A997652)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/app_music.o -MMD)
+I (..\..\App\app_music.h)(0x6A997652)
+I (..\..\App\app_input.h)(0x6A9FE08B)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\FreeRTOS.h)(0x6A7593E6)
+I (..\..\User\FreeRTOSConfig.h)(0x6A997652)
+I (..\..\App\app_fault.h)(0x6A997652)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\projdefs.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\portable.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\deprecated_definitions.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\portable\GCC\ARM_CM7\r0p1\portmacro.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\mpu_wrappers.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\queue.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\task.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\list.h)(0x6A7593E6)
+I (..\..\App\app_audio.h)(0x6A997652)
+I (..\..\App\app_storage.h)(0x6A997652)
+I (..\..\App\app_ui.h)(0x6A9FE228)
+I (..\..\App\app_logs.h)(0x6A997652)
+I (..\..\App\app_monitor.h)(0x6A9FD9A6)
+I (..\..\App\app_rtc.h)(0x6A997652)
+F (..\..\App\app_storage.h)(0x6A997652)()
+F (..\..\App\app_files.c)(0x6A997652)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/app_files.o -MMD)
+I (..\..\App\app_files.h)(0x6A997652)
+I (..\..\App\app_input.h)(0x6A9FE08B)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\FreeRTOS.h)(0x6A7593E6)
+I (..\..\User\FreeRTOSConfig.h)(0x6A997652)
+I (..\..\App\app_fault.h)(0x6A997652)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\projdefs.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\portable.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\deprecated_definitions.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\portable\GCC\ARM_CM7\r0p1\portmacro.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\mpu_wrappers.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\queue.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\task.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\list.h)(0x6A7593E6)
+I (..\..\App\app_logs.h)(0x6A997652)
+I (..\..\App\app_storage.h)(0x6A997652)
+I (..\..\App\app_ui.h)(0x6A9FE228)
+I (..\..\App\app_monitor.h)(0x6A9FD9A6)
+I (..\..\App\app_rtc.h)(0x6A997652)
+I (..\..\App\app_audio.h)(0x6A997652)
+F (..\..\App\app_files.h)(0x6A997652)()
+F (..\..\App\app_draw.c)(0x6A997652)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/app_draw.o -MMD)
+I (..\..\App\app_draw.h)(0x6A997652)
+I (..\..\App\app_input.h)(0x6A9FE08B)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\FreeRTOS.h)(0x6A7593E6)
+I (..\..\User\FreeRTOSConfig.h)(0x6A997652)
+I (..\..\App\app_fault.h)(0x6A997652)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\projdefs.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\portable.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\deprecated_definitions.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\portable\GCC\ARM_CM7\r0p1\portmacro.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\mpu_wrappers.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\queue.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\task.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\list.h)(0x6A7593E6)
+I (..\..\App\app_logs.h)(0x6A997652)
+I (..\..\App\app_storage.h)(0x6A997652)
+I (..\..\App\app_ui.h)(0x6A9FE228)
+I (..\..\App\app_monitor.h)(0x6A9FD9A6)
+I (..\..\App\app_rtc.h)(0x6A997652)
+I (..\..\App\app_audio.h)(0x6A997652)
+I (..\..\Drivers\.\BSP\LCD\lcd.h)(0x6A997652)
+I (..\..\Drivers\.\SYSTEM\sys\sys.h)(0x6A997652)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h7xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h743xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Include\core_cm7.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\system_stm32h7xx.h)(0x6423D538)
+F (..\..\App\app_draw.h)(0x6A997652)()
+F (..\..\App\app_logs.c)(0x6A997652)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/app_logs.o -MMD)
+I (..\..\App\app_logs.h)(0x6A997652)
+I (..\..\App\app_input.h)(0x6A9FE08B)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\FreeRTOS.h)(0x6A7593E6)
+I (..\..\User\FreeRTOSConfig.h)(0x6A997652)
+I (..\..\App\app_fault.h)(0x6A997652)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\projdefs.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\portable.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\deprecated_definitions.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\portable\GCC\ARM_CM7\r0p1\portmacro.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\mpu_wrappers.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\queue.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\task.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\list.h)(0x6A7593E6)
+I (..\..\App\app_storage.h)(0x6A997652)
+I (..\..\App\app_ui.h)(0x6A9FE228)
+I (..\..\App\app_monitor.h)(0x6A9FD9A6)
+I (..\..\App\app_rtc.h)(0x6A997652)
+I (..\..\App\app_audio.h)(0x6A997652)
+F (..\..\App\app_logs.h)(0x6A997652)()
+F (..\..\App\app_settings.c)(0x6A997652)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/app_settings.o -MMD)
+I (..\..\App\app_settings.h)(0x6A997652)
+I (..\..\App\app_input.h)(0x6A9FE08B)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\FreeRTOS.h)(0x6A7593E6)
+I (..\..\User\FreeRTOSConfig.h)(0x6A997652)
+I (..\..\App\app_fault.h)(0x6A997652)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\projdefs.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\portable.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\deprecated_definitions.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\portable\GCC\ARM_CM7\r0p1\portmacro.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\mpu_wrappers.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\queue.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\task.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\list.h)(0x6A7593E6)
+I (..\..\App\app_audio.h)(0x6A997652)
+I (..\..\App\app_storage.h)(0x6A997652)
+I (..\..\App\app_logs.h)(0x6A997652)
+I (..\..\App\app_rtc.h)(0x6A997652)
+I (..\..\App\app_screen.h)(0x6A997652)
+I (..\..\App\app_ui.h)(0x6A9FE228)
+I (..\..\App\app_monitor.h)(0x6A9FD9A6)
+F (..\..\App\app_settings.h)(0x6A997652)()
+F (..\..\App\app_screen.c)(0x6A997652)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/app_screen.o -MMD)
+I (..\..\App\app_screen.h)(0x6A997652)
+I (..\..\Drivers\.\BSP\LCD\lcd.h)(0x6A997652)
+I (..\..\Drivers\.\SYSTEM\sys\sys.h)(0x6A997652)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h7xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h743xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Include\core_cm7.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\system_stm32h7xx.h)(0x6423D538)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\FreeRTOS.h)(0x6A7593E6)
+I (..\..\User\FreeRTOSConfig.h)(0x6A997652)
+I (..\..\App\app_fault.h)(0x6A997652)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\projdefs.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\portable.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\deprecated_definitions.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\portable\GCC\ARM_CM7\r0p1\portmacro.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\mpu_wrappers.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\task.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\list.h)(0x6A7593E6)
+F (..\..\App\app_screen.h)(0x6A997652)()
+F (..\..\App\app_rtc.c)(0x6A997652)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/app_rtc.o -MMD)
+I (..\..\App\app_rtc.h)(0x6A997652)
+I (..\..\Drivers\.\BSP\IIC\myiic.h)(0x6A997652)
+I (..\..\Drivers\.\SYSTEM\sys\sys.h)(0x6A997652)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h7xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h743xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Include\core_cm7.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\system_stm32h7xx.h)(0x6423D538)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\FreeRTOS.h)(0x6A7593E6)
+I (..\..\User\FreeRTOSConfig.h)(0x6A997652)
+I (..\..\App\app_fault.h)(0x6A997652)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\projdefs.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\portable.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\deprecated_definitions.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\portable\GCC\ARM_CM7\r0p1\portmacro.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\mpu_wrappers.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\task.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\list.h)(0x6A7593E6)
+F (..\..\App\app_rtc.h)(0x6A997652)()
+F (..\..\Drivers\SYSTEM\delay\delay.c)(0x6A997652)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/delay.o -MMD)
+I (..\..\Drivers\.\SYSTEM\sys\sys.h)(0x6A997652)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h7xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h743xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Include\core_cm7.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\system_stm32h7xx.h)(0x6423D538)
+I (..\..\Drivers\.\SYSTEM\delay\delay.h)(0x6A997652)
+F (..\..\Drivers\SYSTEM\sys\sys.c)(0x6A997652)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/sys.o -MMD)
+I (..\..\Drivers\.\SYSTEM\sys\sys.h)(0x6A997652)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h7xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h743xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Include\core_cm7.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\system_stm32h7xx.h)(0x6423D538)
+F (..\..\Drivers\SYSTEM\usart\usart.c)(0x6A997652)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/usart.o -MMD)
+I (..\..\Drivers\.\SYSTEM\sys\sys.h)(0x6A997652)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h7xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h743xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Include\core_cm7.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\system_stm32h7xx.h)(0x6423D538)
+I (..\..\Drivers\.\SYSTEM\usart\usart.h)(0x6A997652)
+I (..\..\Drivers\.\SYSTEM\usart\usart_rx.h)(0x6A997652)
+F (..\..\Drivers\SYSTEM\usart\usart_rx.h)(0x6A997652)()
+F (..\..\Drivers\BSP\LED\led.c)(0x6A997652)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/led.o -MMD)
+I (..\..\Drivers\.\BSP\LED\led.h)(0x6A997652)
+I (..\..\Drivers\.\SYSTEM\sys\sys.h)(0x6A997652)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h7xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h743xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Include\core_cm7.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\system_stm32h7xx.h)(0x6423D538)
+F (..\..\Drivers\BSP\MPU\mpu.c)(0x6A997652)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/mpu.o -MMD)
+I (..\..\Drivers\.\SYSTEM\usart\usart.h)(0x6A997652)
+I (..\..\Drivers\.\SYSTEM\sys\sys.h)(0x6A997652)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h7xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h743xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Include\core_cm7.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\system_stm32h7xx.h)(0x6423D538)
+I (..\..\Drivers\.\SYSTEM\usart\usart_rx.h)(0x6A997652)
+I (..\..\Drivers\.\SYSTEM\delay\delay.h)(0x6A997652)
+I (..\..\Drivers\.\BSP\LED\led.h)(0x6A997652)
+I (..\..\Drivers\.\BSP\MPU\mpu.h)(0x6A997652)
+I (..\..\App\app_fault.h)(0x6A997652)
+F (..\..\Drivers\BSP\CH9350\ch9350.c)(0x6A997652)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/ch9350.o -MMD)
+I (..\..\Drivers\BSP\CH9350\ch9350.h)(0x6A997652)
+I (..\..\Drivers\.\SYSTEM\usart\usart.h)(0x6A997652)
+I (..\..\Drivers\.\SYSTEM\sys\sys.h)(0x6A997652)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h7xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h743xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Include\core_cm7.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\system_stm32h7xx.h)(0x6423D538)
+I (..\..\Drivers\.\SYSTEM\usart\usart_rx.h)(0x6A997652)
+F (..\..\Drivers\BSP\CH9350\ch9350.h)(0x6A997652)()
+F (..\..\Drivers\BSP\SDRAM\sdram.c)(0x6A997652)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/sdram.o -MMD)
+I (..\..\Drivers\.\SYSTEM\delay\delay.h)(0x6A997652)
+I (..\..\Drivers\.\SYSTEM\sys\sys.h)(0x6A997652)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h7xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h743xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Include\core_cm7.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\system_stm32h7xx.h)(0x6423D538)
+I (..\..\Drivers\.\BSP\SDRAM\sdram.h)(0x6A997652)
+F (..\..\Drivers\BSP\LCD\lcd.c)(0x6A997652)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/lcd.o -MMD)
+I (..\..\Drivers\.\BSP\LCD\lcd.h)(0x6A997652)
+I (..\..\Drivers\.\SYSTEM\sys\sys.h)(0x6A997652)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h7xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h743xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Include\core_cm7.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\system_stm32h7xx.h)(0x6423D538)
+I (..\..\Drivers\.\BSP\LCD\lcdfont.h)(0x6602C186)
+I (..\..\Drivers\.\SYSTEM\usart\usart.h)(0x6A997652)
+I (..\..\Drivers\.\SYSTEM\usart\usart_rx.h)(0x6A997652)
+I (..\..\Drivers\.\BSP\LCD\ltdc.h)(0x6A997652)
+I (..\..\Drivers\.\BSP\LCD\lcd_ex.c)(0x6A997652)
+I (..\..\Drivers\.\SYSTEM\delay\delay.h)(0x6A997652)
+F (..\..\Drivers\BSP\LCD\ltdc.c)(0x6A997652)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/ltdc.o -MMD)
+I (..\..\Drivers\.\BSP\LCD\lcd.h)(0x6A997652)
+I (..\..\Drivers\.\SYSTEM\sys\sys.h)(0x6A997652)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h7xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h743xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Include\core_cm7.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\system_stm32h7xx.h)(0x6423D538)
+I (..\..\Drivers\.\BSP\LCD\ltdc.h)(0x6A997652)
+I (..\..\Drivers\.\SYSTEM\delay\delay.h)(0x6A997652)
+F (..\..\Drivers\BSP\KEY\key.c)(0x6A997652)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/key.o -MMD)
+I (..\..\Drivers\.\BSP\KEY\key.h)(0x6A997652)
+I (..\..\Drivers\.\SYSTEM\sys\sys.h)(0x6A997652)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h7xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h743xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Include\core_cm7.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\system_stm32h7xx.h)(0x6423D538)
+I (..\..\Drivers\.\SYSTEM\delay\delay.h)(0x6A997652)
+F (..\..\Drivers\BSP\24CXX\24cxx.c)(0x6A997652)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/24cxx.o -MMD)
+I (..\..\Drivers\.\BSP\IIC\myiic.h)(0x6A997652)
+I (..\..\Drivers\.\SYSTEM\sys\sys.h)(0x6A997652)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h7xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h743xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Include\core_cm7.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\system_stm32h7xx.h)(0x6423D538)
+I (..\..\Drivers\.\BSP\24CXX\24cxx.h)(0x6A997652)
+I (..\..\Drivers\.\SYSTEM\delay\delay.h)(0x6A997652)
+F (..\..\Drivers\BSP\IIC\myiic.c)(0x6A997652)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/myiic.o -MMD)
+I (..\..\Drivers\.\BSP\IIC\myiic.h)(0x6A997652)
+I (..\..\Drivers\.\SYSTEM\sys\sys.h)(0x6A997652)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h7xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h743xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Include\core_cm7.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\system_stm32h7xx.h)(0x6423D538)
+I (..\..\Drivers\.\SYSTEM\delay\delay.h)(0x6A997652)
+F (..\..\Drivers\BSP\TOUCH\ctiic.c)(0x6A997652)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/ctiic.o -MMD)
+I (..\..\Drivers\.\BSP\TOUCH\ctiic.h)(0x6A997652)
+I (..\..\Drivers\.\SYSTEM\sys\sys.h)(0x6A997652)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h7xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h743xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Include\core_cm7.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\system_stm32h7xx.h)(0x6423D538)
+I (..\..\Drivers\.\SYSTEM\delay\delay.h)(0x6A997652)
+F (..\..\Drivers\BSP\TOUCH\ft5206.c)(0x6A997652)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/ft5206.o -MMD)
+I (..\..\Drivers\.\BSP\LCD\lcd.h)(0x6A997652)
+I (..\..\Drivers\.\SYSTEM\sys\sys.h)(0x6A997652)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h7xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h743xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Include\core_cm7.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\system_stm32h7xx.h)(0x6423D538)
+I (..\..\Drivers\.\BSP\TOUCH\touch.h)(0x6A997652)
+I (..\..\Drivers\.\BSP\TOUCH\gt9xxx.h)(0x6A997652)
+I (..\..\Drivers\.\BSP\TOUCH\ft5206.h)(0x6A997652)
+I (..\..\Drivers\.\BSP\TOUCH\ctiic.h)(0x6A997652)
+I (..\..\Drivers\.\SYSTEM\usart\usart.h)(0x6A997652)
+I (..\..\Drivers\.\SYSTEM\usart\usart_rx.h)(0x6A997652)
+I (..\..\Drivers\.\SYSTEM\delay\delay.h)(0x6A997652)
+F (..\..\Drivers\BSP\TOUCH\gt9xxx.c)(0x6A997652)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/gt9xxx.o -MMD)
+I (..\..\Drivers\.\BSP\LCD\lcd.h)(0x6A997652)
+I (..\..\Drivers\.\SYSTEM\sys\sys.h)(0x6A997652)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h7xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h743xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Include\core_cm7.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\system_stm32h7xx.h)(0x6423D538)
+I (..\..\Drivers\.\BSP\TOUCH\touch.h)(0x6A997652)
+I (..\..\Drivers\.\BSP\TOUCH\gt9xxx.h)(0x6A997652)
+I (..\..\Drivers\.\BSP\TOUCH\ft5206.h)(0x6A997652)
+I (..\..\Drivers\.\BSP\TOUCH\ctiic.h)(0x6A997652)
+I (..\..\Drivers\.\SYSTEM\usart\usart.h)(0x6A997652)
+I (..\..\Drivers\.\SYSTEM\usart\usart_rx.h)(0x6A997652)
+I (..\..\Drivers\.\SYSTEM\delay\delay.h)(0x6A997652)
+F (..\..\Drivers\BSP\TOUCH\touch.c)(0x6A997652)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/touch.o -MMD)
+I (..\..\Drivers\.\BSP\LCD\lcd.h)(0x6A997652)
+I (..\..\Drivers\.\SYSTEM\sys\sys.h)(0x6A997652)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h7xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h743xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Include\core_cm7.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\system_stm32h7xx.h)(0x6423D538)
+I (..\..\Drivers\.\BSP\TOUCH\touch.h)(0x6A997652)
+I (..\..\Drivers\.\BSP\TOUCH\gt9xxx.h)(0x6A997652)
+I (..\..\Drivers\.\BSP\TOUCH\ft5206.h)(0x6A997652)
+I (..\..\Drivers\.\BSP\24CXX\24cxx.h)(0x6A997652)
+I (..\..\Drivers\.\SYSTEM\delay\delay.h)(0x6A997652)
+F (..\..\Drivers\BSP\SDMMC\sdmmc_sdcard.c)(0x6A997652)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/sdmmc_sdcard.o -MMD)
+I (..\..\Drivers\BSP\SDMMC\sdmmc_sdcard.h)(0x6A997652)
+I (..\..\Drivers\.\SYSTEM\sys\sys.h)(0x6A997652)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h7xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h743xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Include\core_cm7.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\system_stm32h7xx.h)(0x6423D538)
+F (..\..\Drivers\BSP\SDMMC\sdmmc_sdcard.h)(0x6A997652)()
+F (..\..\Middlewares\FatFs\ff.c)(0x6A7F2A9F)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/ff.o -MMD)
+I (..\..\Middlewares\FatFs\ff.h)(0x6A7F2AD5)
+I (..\..\Middlewares\FatFs\integer.h)(0x6A7F2ADF)
+I (..\..\Middlewares\FatFs\ffconf.h)(0x6A7F2B62)
+I (..\..\Middlewares\FatFs\diskio.h)(0x6A7F2ADB)
+F (..\..\Middlewares\FatFs\diskio.c)(0x6A7F2C90)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/diskio.o -MMD)
+I (..\..\Middlewares\FatFs\diskio.h)(0x6A7F2ADB)
+I (..\..\Middlewares\FatFs\integer.h)(0x6A7F2ADF)
+I (..\..\Drivers\.\BSP\SDMMC\sdmmc_sdcard.h)(0x6A997652)
+I (..\..\Drivers\.\SYSTEM\sys\sys.h)(0x6A997652)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h7xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\stm32h743xx.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Include\core_cm7.h)(0x6423D538)
+I (..\..\Drivers\CMSIS\Device\ST\STM32H7xx\Include\system_stm32h7xx.h)(0x6423D538)
+F (..\..\Middlewares\FatFs\ff.h)(0x6A7F2AD5)()
+F (..\..\Middlewares\FatFs\ffconf.h)(0x6A7F2B62)()
+F (..\..\Middlewares\FatFs\diskio.h)(0x6A7F2ADB)()
+F (..\..\Middlewares\FatFs\integer.h)(0x6A7F2ADF)()
+F (..\..\readme.txt)(0x00000000)()
+F (..\..\Middlewares\FreeRTOS-Kernel-main\event_groups.c)(0x6A7593E6)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/event_groups.o -MMD)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\FreeRTOS.h)(0x6A7593E6)
+I (..\..\User\FreeRTOSConfig.h)(0x6A997652)
+I (..\..\App\app_fault.h)(0x6A997652)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\projdefs.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\portable.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\deprecated_definitions.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\portable\GCC\ARM_CM7\r0p1\portmacro.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\mpu_wrappers.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\task.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\list.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\timers.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\event_groups.h)(0x6A7593E6)
+F (..\..\Middlewares\FreeRTOS-Kernel-main\list.c)(0x6A7593E6)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/list.o -MMD)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\FreeRTOS.h)(0x6A7593E6)
+I (..\..\User\FreeRTOSConfig.h)(0x6A997652)
+I (..\..\App\app_fault.h)(0x6A997652)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\projdefs.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\portable.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\deprecated_definitions.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\portable\GCC\ARM_CM7\r0p1\portmacro.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\mpu_wrappers.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\list.h)(0x6A7593E6)
+F (..\..\Middlewares\FreeRTOS-Kernel-main\queue.c)(0x6A7593E6)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/queue.o -MMD)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\FreeRTOS.h)(0x6A7593E6)
+I (..\..\User\FreeRTOSConfig.h)(0x6A997652)
+I (..\..\App\app_fault.h)(0x6A997652)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\projdefs.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\portable.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\deprecated_definitions.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\portable\GCC\ARM_CM7\r0p1\portmacro.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\mpu_wrappers.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\task.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\list.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\queue.h)(0x6A7593E6)
+F (..\..\Middlewares\FreeRTOS-Kernel-main\stream_buffer.c)(0x6A7593E6)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/stream_buffer.o -MMD)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\FreeRTOS.h)(0x6A7593E6)
+I (..\..\User\FreeRTOSConfig.h)(0x6A997652)
+I (..\..\App\app_fault.h)(0x6A997652)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\projdefs.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\portable.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\deprecated_definitions.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\portable\GCC\ARM_CM7\r0p1\portmacro.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\mpu_wrappers.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\task.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\list.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\stream_buffer.h)(0x6A7593E6)
+F (..\..\Middlewares\FreeRTOS-Kernel-main\tasks.c)(0x6A7593E6)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/tasks.o -MMD)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\FreeRTOS.h)(0x6A7593E6)
+I (..\..\User\FreeRTOSConfig.h)(0x6A997652)
+I (..\..\App\app_fault.h)(0x6A997652)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\projdefs.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\portable.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\deprecated_definitions.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\portable\GCC\ARM_CM7\r0p1\portmacro.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\mpu_wrappers.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\task.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\list.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\timers.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\stack_macros.h)(0x6A7593E6)
+F (..\..\Middlewares\FreeRTOS-Kernel-main\timers.c)(0x6A7593E6)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/timers.o -MMD)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\FreeRTOS.h)(0x6A7593E6)
+I (..\..\User\FreeRTOSConfig.h)(0x6A997652)
+I (..\..\App\app_fault.h)(0x6A997652)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\projdefs.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\portable.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\deprecated_definitions.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\portable\GCC\ARM_CM7\r0p1\portmacro.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\mpu_wrappers.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\task.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\list.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\queue.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\timers.h)(0x6A7593E6)
+F (..\..\Middlewares\FreeRTOS-Kernel-main\portable\GCC\ARM_CM7\r0p1\port.c)(0x6A7593E6)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/port.o -MMD)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\FreeRTOS.h)(0x6A7593E6)
+I (..\..\User\FreeRTOSConfig.h)(0x6A997652)
+I (..\..\App\app_fault.h)(0x6A997652)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\projdefs.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\portable.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\deprecated_definitions.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\portable\GCC\ARM_CM7\r0p1\portmacro.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\mpu_wrappers.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\task.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\list.h)(0x6A7593E6)
+F (..\..\Middlewares\FreeRTOS-Kernel-main\portable\MemMang\heap_4.c)(0x6A7593E6)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-gdwarf-4 -O0 -ffunction-sections -Wall -Wextra -Wno-packed -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../../Drivers/CMSIS/Include -I ../../Drivers -I ../../Middlewares -I ../../Middlewares/FatFs -I ../../User -I ../../App -I ../../Middlewares/FreeRTOS-Kernel-main/include -I ../../Middlewares/FreeRTOS-Kernel-main/portable/GCC/ARM_CM7/r0p1 -I ../../User-I"D:/stm app/Keil/STM32H7xx_DFP/4.1.3/Drivers/CMSIS/Device/ST/STM32H7xx/Include"-D__UVISION_VERSION="543" -DSTM32H743xx -DSTM32H743xx-o ../../output/heap_4.o -MMD)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\FreeRTOS.h)(0x6A7593E6)
+I (..\..\User\FreeRTOSConfig.h)(0x6A997652)
+I (..\..\App\app_fault.h)(0x6A997652)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\projdefs.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\portable.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\deprecated_definitions.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\portable\GCC\ARM_CM7\r0p1\portmacro.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\mpu_wrappers.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\task.h)(0x6A7593E6)
+I (..\..\Middlewares\FreeRTOS-Kernel-main\include\list.h)(0x6A7593E6)

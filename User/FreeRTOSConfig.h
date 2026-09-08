@@ -1,9 +1,17 @@
+/**
+ * @file FreeRTOSConfig.h
+ * @brief 集中定义本项目使用的 FreeRTOS 内核裁剪项和运行参数。
+ * @details 这是 FreeRTOSConfig 模块的接口文件（User/FreeRTOSConfig.h）。调用本模块接口时，应遵守
+ *          相应外设初始化顺序、缓冲区有效期和 FreeRTOS 任务上下文约束。
+ * @note 文件采用 UTF-8 编码；硬件资源分配以板级原理图和工程配置为准。
+ */
+
 #ifndef FREERTOS_CONFIG_H
+/** @name 编译期配置与硬件参数：集中定义本模块使用的常量和宏。 */
 #define FREERTOS_CONFIG_H
 
 #include "app_fault.h"
 
-/* STM32H743 CPU运行频率 */
 #define configCPU_CLOCK_HZ                     400000000UL
 #define configTICK_RATE_HZ                     1000U
 
@@ -59,7 +67,6 @@
 #define INCLUDE_uxTaskGetStackHighWaterMark    1
 #define INCLUDE_xTimerGetTimerDaemonTaskHandle 1
 
-/* STM32H743具有4个中断优先级位 */
 #define configPRIO_BITS                        4
 #define configLIBRARY_LOWEST_INTERRUPT_PRIORITY        15
 #define configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY   5
@@ -70,7 +77,6 @@
 #define configMAX_SYSCALL_INTERRUPT_PRIORITY   \
     (configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY << (8 - configPRIO_BITS))
 
-/* 使用STM32启动文件中的标准中断名称 */
 #define vPortSVCHandler                        SVC_Handler
 #define xPortPendSVHandler                     PendSV_Handler
 #define xPortSysTickHandler                    SysTick_Handler
@@ -87,4 +93,4 @@
         }                                      \
     } while (0)
 
-#endif /* FREERTOS_CONFIG_H */
+#endif

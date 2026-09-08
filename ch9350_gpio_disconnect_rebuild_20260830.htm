@@ -1,0 +1,386 @@
+<html>
+<body>
+<pre>
+<h1>�Vision Build Log</h1>
+<h2>Tool Versions:</h2>
+IDE-Version: ��Vision V5.43.1.0
+Copyright (C) 2025 ARM Ltd and ARM Germany GmbH. All rights reserved.
+License Information: Coco coconut, none, LIC=KRMW3-A7DFI-74TS0-BJGCH-8WHZ1-J42P2
+ 
+Tool Versions:
+Toolchain:       MDK-ARM Plus  Version: 5.43.0.0
+Toolchain Path:  D:\stm app\ARM\ARMCLANG\Bin
+C Compiler:      ArmClang.exe V6.24
+Assembler:       Armasm.exe V6.24
+Linker/Locator:  ArmLink.exe V6.24
+Library Manager: ArmAr.exe V6.24
+Hex Converter:   FromElf.exe V6.24
+CPU DLL:         SARMCM3.DLL V5.43.0.0
+Dialog DLL:      DCM.DLL V1.17.5.0
+Target DLL:      STLink\ST-LINKIII-KEIL_SWO.dll V3.3.1.0
+Dialog DLL:      TCM.DLL V1.56.6.0
+ 
+<h2>Project:</h2>
+E:\STM32Project\STM32H743_5inch_GT911_Test\Projects\MDK-ARM\atk_h743.uvprojx
+Project File Date:  08/28/2026
+
+<h2>Output:</h2>
+*** Using Compiler 'V6.24', folder: 'D:\stm app\ARM\ARMCLANG\Bin'
+Rebuild target 'TOUCH'
+assembling startup_stm32h743xx.s...
+../../App/app_audio.c(10): warning: In file included from...
+../../Drivers\./SYSTEM/sys/sys.h(62): warning: unused function 'sys_nvic_priority_group_config' [-Wunused-function]
+   62 | static void sys_nvic_priority_group_config(uint8_t group);                      /* <C9><E8><D6><C3>NVIC<B7><D6><D7><E9> */
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+1 warning generated.
+compiling app_audio.c...
+compiling app_music.c...
+compiling app_mouse.c...
+compiling app_runtime.c...
+../../App/app_monitor.c(6): warning: In file included from...
+../../Drivers\./BSP/LED/led.h(6): warning: In file included from...
+../../Drivers\./SYSTEM/sys/sys.h(62): warning: unused function 'sys_nvic_priority_group_config' [-Wunused-function]
+   62 | static void sys_nvic_priority_group_config(uint8_t group);                      /* <C9><E8><D6><C3>NVIC<B7><D6><D7><E9> */
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+1 warning generated.
+compiling app_monitor.c...
+../../User/main.c(1): warning: In file included from...
+../../Drivers\./SYSTEM/sys/sys.h(62): warning: unused function 'sys_nvic_priority_group_config' [-Wunused-function]
+   62 | static void sys_nvic_priority_group_config(uint8_t group);                      /* <C9><E8><D6><C3>NVIC<B7><D6><D7><E9> */
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../../User/main.c(5): warning: In file included from...
+../../Drivers\./BSP/MPU/mpu.h(21): warning: unused function 'mpu_convert_bytes_to_pot' [-Wunused-function]
+   21 | static uint8_t mpu_convert_bytes_to_pot(uint32_t nbytes);   /* <BD><AB>nbytesת<BB><BB>Ϊ2Ϊ<B5>ڵ<C4>ָ<CA><FD> */
+      |                ^~~~~~~~~~~~~~~~~~~~~~~~
+../../User/main.c(8): warning: In file included from...
+../../Drivers\./BSP/TOUCH/touch.h(88): warning: unused function 'tp_write_byte' [-Wunused-function]
+   88 | static void tp_write_byte(uint8_t data);                /* <CF><F2><BF><D8><D6><C6>оƬд<C8><EB>һ<B8><F6><CA><FD><BE><DD> */
+      |             ^~~~~~~~~~~~~
+../../Drivers\./BSP/TOUCH/touch.h(89): warning: unused function 'tp_read_ad' [-Wunused-function]
+   89 | static uint16_t tp_read_ad(uint8_t cmd);                /* <B6><C1>ȡADת<BB><BB>ֵ */
+      |                 ^~~~~~~~~~
+../../Drivers\./BSP/TOUCH/touch.h(90): warning: unused function 'tp_read_xoy' [-Wunused-function]
+   90 | static uint16_t tp_read_xoy(uint8_t cmd);               /* <B4><F8><C2>˲<A8><B5><C4><D7><F8><B1><EA><B6><C1>ȡ(X/Y) */
+      |                 ^~~~~~~~~~~
+../../Drivers\./BSP/TOUCH/touch.h(91): warning: unused function 'tp_read_xy' [-Wunused-function]
+   91 | static void tp_read_xy(uint16_t *x, uint16_t *y);       /* ˫<B7><BD><CF><F2><B6><C1>ȡ(X+Y) */
+      |             ^~~~~~~~~~
+../../Drivers\./BSP/TOUCH/touch.h(92): warning: unused function 'tp_read_xy2' [-Wunused-function]
+   92 | static uint8_t tp_read_xy2(uint16_t *x, uint16_t *y);   /* <B4><F8><BC><D3>ǿ<C2>˲<A8><B5><C4>˫<B7><BD><CF><F2><D7><F8><B1><EA><B6><C1>ȡ */
+      |                ^~~~~~~~~~~
+../../Drivers\./BSP/TOUCH/touch.h(93): warning: unused function 'tp_draw_touch_point' [-Wunused-function]
+   93 | static void tp_draw_touch_point(uint16_t x, uint16_t y, uint16_t color);    /* <BB><AD>һ<B8><F6><D7><F8><B1><EA>У<U+05FC><B5><E3> */
+      |             ^~~~~~~~~~~~~~~~~~~
+../../Drivers\./BSP/TOUCH/touch.h(94): warning: unused function 'tp_adjust_info_show' [-Wunused-function]
+   94 | static void tp_adjust_info_show(uint16_t xy[5][2], double px, double py);   /* <CF><D4>ʾУ<U+05FC><D0><C5>Ϣ */
+      |             ^~~~~~~~~~~~~~~~~~~
+9 warnings generated.
+compiling main.c...
+../../App/app_ui.c(5): warning: In file included from...
+../../Drivers\./BSP/LCD/lcd.h(7): warning: In file included from...
+../../Drivers\./SYSTEM/sys/sys.h(62): warning: unused function 'sys_nvic_priority_group_config' [-Wunused-function]
+   62 | static void sys_nvic_priority_group_config(uint8_t group);                      /* <C9><E8><D6><C3>NVIC<B7><D6><D7><E9> */
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+1 warning generated.
+compiling app_ui.c...
+../../App/app_storage.c(12): warning: In file included from...
+../../Drivers\./BSP/SDMMC/sdmmc_sdcard.h(3): warning: In file included from...
+../../Drivers\./SYSTEM/sys/sys.h(62): warning: unused function 'sys_nvic_priority_group_config' [-Wunused-function]
+   62 | static void sys_nvic_priority_group_config(uint8_t group);                      /* <C9><E8><D6><C3>NVIC<B7><D6><D7><E9> */
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+1 warning generated.
+compiling app_storage.c...
+../../App/app_input.c(3): warning: In file included from...
+../../Drivers\./BSP/TOUCH/touch.h(6): warning: In file included from...
+../../Drivers\./SYSTEM/sys/sys.h(62): warning: unused function 'sys_nvic_priority_group_config' [-Wunused-function]
+   62 | static void sys_nvic_priority_group_config(uint8_t group);                      /* <C9><E8><D6><C3>NVIC<B7><D6><D7><E9> */
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../../App/app_input.c(3): warning: In file included from...
+../../Drivers\./BSP/TOUCH/touch.h(88): warning: unused function 'tp_write_byte' [-Wunused-function]
+   88 | static void tp_write_byte(uint8_t data);                /* <CF><F2><BF><D8><D6><C6>оƬд<C8><EB>һ<B8><F6><CA><FD><BE><DD> */
+      |             ^~~~~~~~~~~~~
+../../Drivers\./BSP/TOUCH/touch.h(89): warning: unused function 'tp_read_ad' [-Wunused-function]
+   89 | static uint16_t tp_read_ad(uint8_t cmd);                /* <B6><C1>ȡADת<BB><BB>ֵ */
+      |                 ^~~~~~~~~~
+../../Drivers\./BSP/TOUCH/touch.h(90): warning: unused function 'tp_read_xoy' [-Wunused-function]
+   90 | static uint16_t tp_read_xoy(uint8_t cmd);               /* <B4><F8><C2>˲<A8><B5><C4><D7><F8><B1><EA><B6><C1>ȡ(X/Y) */
+      |                 ^~~~~~~~~~~
+../../Drivers\./BSP/TOUCH/touch.h(91): warning: unused function 'tp_read_xy' [-Wunused-function]
+   91 | static void tp_read_xy(uint16_t *x, uint16_t *y);       /* ˫<B7><BD><CF><F2><B6><C1>ȡ(X+Y) */
+      |             ^~~~~~~~~~
+../../Drivers\./BSP/TOUCH/touch.h(92): warning: unused function 'tp_read_xy2' [-Wunused-function]
+   92 | static uint8_t tp_read_xy2(uint16_t *x, uint16_t *y);   /* <B4><F8><BC><D3>ǿ<C2>˲<A8><B5><C4>˫<B7><BD><CF><F2><D7><F8><B1><EA><B6><C1>ȡ */
+      |                ^~~~~~~~~~~
+../../Drivers\./BSP/TOUCH/touch.h(93): warning: unused function 'tp_draw_touch_point' [-Wunused-function]
+   93 | static void tp_draw_touch_point(uint16_t x, uint16_t y, uint16_t color);    /* <BB><AD>һ<B8><F6><D7><F8><B1><EA>У<U+05FC><B5><E3> */
+      |             ^~~~~~~~~~~~~~~~~~~
+../../Drivers\./BSP/TOUCH/touch.h(94): warning: unused function 'tp_adjust_info_show' [-Wunused-function]
+   94 | static void tp_adjust_info_show(uint16_t xy[5][2], double px, double py);   /* <CF><D4>ʾУ<U+05FC><D0><C5>Ϣ */
+      |             ^~~~~~~~~~~~~~~~~~~
+8 warnings generated.
+compiling app_input.c...
+compiling app_logs.c...
+../../App/app_draw.c(11): warning: In file included from...
+../../Drivers\./BSP/LCD/lcd.h(7): warning: In file included from...
+../../Drivers\./SYSTEM/sys/sys.h(62): warning: unused function 'sys_nvic_priority_group_config' [-Wunused-function]
+   62 | static void sys_nvic_priority_group_config(uint8_t group);                      /* <C9><E8><D6><C3>NVIC<B7><D6><D7><E9> */
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+1 warning generated.
+compiling app_draw.c...
+compiling app_files.c...
+compiling app_settings.c...
+compiling sys.c...
+../../App/app_screen.c(3): warning: In file included from...
+../../Drivers\./BSP/LCD/lcd.h(7): warning: In file included from...
+../../Drivers\./SYSTEM/sys/sys.h(62): warning: unused function 'sys_nvic_priority_group_config' [-Wunused-function]
+   62 | static void sys_nvic_priority_group_config(uint8_t group);                      /* <C9><E8><D6><C3>NVIC<B7><D6><D7><E9> */
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+1 warning generated.
+compiling app_screen.c...
+../../App/app_rtc.c(6): warning: In file included from...
+../../Drivers\./BSP/IIC/myiic.h(6): warning: In file included from...
+../../Drivers\./SYSTEM/sys/sys.h(62): warning: unused function 'sys_nvic_priority_group_config' [-Wunused-function]
+   62 | static void sys_nvic_priority_group_config(uint8_t group);                      /* <C9><E8><D6><C3>NVIC<B7><D6><D7><E9> */
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+1 warning generated.
+compiling app_rtc.c...
+../../Drivers/SYSTEM/delay/delay.c(2): warning: In file included from...
+../../Drivers\./SYSTEM/sys/sys.h(62): warning: unused function 'sys_nvic_priority_group_config' [-Wunused-function]
+   62 | static void sys_nvic_priority_group_config(uint8_t group);                      /* <C9><E8><D6><C3>NVIC<B7><D6><D7><E9> */
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+1 warning generated.
+compiling delay.c...
+../../Drivers/SYSTEM/usart/usart.c(37): warning: explicitly assigning value of variable of type 'int' to itself [-Wself-assign]
+   37 |     ch = ch;
+      |     ~~ ^ ~~
+../../Drivers/SYSTEM/usart/usart.c(44): warning: explicitly assigning value of variable of type 'int' to itself [-Wself-assign]
+   44 |     x = x;
+      |     ~ ^ ~
+../../Drivers/SYSTEM/usart/usart.c(47): warning: unused parameter 'cmd' [-Wunused-parameter]
+   47 | char *_sys_command_string(char *cmd, int len)
+      |                                 ^
+../../Drivers/SYSTEM/usart/usart.c(47): warning: unused parameter 'len' [-Wunused-parameter]
+   47 | char *_sys_command_string(char *cmd, int len)
+      |                                          ^
+../../Drivers/SYSTEM/usart/usart.c(56): warning: unused parameter 'f' [-Wunused-parameter]
+   56 | int fputc(int ch, FILE *f)
+      |                         ^
+../../Drivers/SYSTEM/usart/usart.c(3): warning: In file included from...
+../../Drivers\./SYSTEM/sys/sys.h(62): warning: unused function 'sys_nvic_priority_group_config' [-Wunused-function]
+   62 | static void sys_nvic_priority_group_config(uint8_t group);                      /* <C9><E8><D6><C3>NVIC<B7><D6><D7><E9> */
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+6 warnings generated.
+compiling usart.c...
+../../Drivers/BSP/MPU/mpu.c(3): warning: In file included from...
+../../Drivers\./SYSTEM/usart/usart.h(6): warning: In file included from...
+../../Drivers\./SYSTEM/sys/sys.h(62): warning: unused function 'sys_nvic_priority_group_config' [-Wunused-function]
+   62 | static void sys_nvic_priority_group_config(uint8_t group);                      /* <C9><E8><D6><C3>NVIC<B7><D6><D7><E9> */
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+1 warning generated.
+compiling mpu.c...
+../../Drivers/BSP/LED/led.c(3): warning: In file included from...
+../../Drivers\./BSP/LED/led.h(6): warning: In file included from...
+../../Drivers\./SYSTEM/sys/sys.h(62): warning: unused function 'sys_nvic_priority_group_config' [-Wunused-function]
+   62 | static void sys_nvic_priority_group_config(uint8_t group);                      /* <C9><E8><D6><C3>NVIC<B7><D6><D7><E9> */
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+1 warning generated.
+compiling led.c...
+../../Drivers/BSP/SDRAM/sdram.c(3): warning: In file included from...
+../../Drivers\./SYSTEM/delay/delay.h(6): warning: In file included from...
+../../Drivers\./SYSTEM/sys/sys.h(62): warning: unused function 'sys_nvic_priority_group_config' [-Wunused-function]
+   62 | static void sys_nvic_priority_group_config(uint8_t group);                      /* <C9><E8><D6><C3>NVIC<B7><D6><D7><E9> */
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+1 warning generated.
+compiling sdram.c...
+../../Drivers/BSP/KEY/key.c(3): warning: In file included from...
+../../Drivers\./BSP/KEY/key.h(6): warning: In file included from...
+../../Drivers\./SYSTEM/sys/sys.h(62): warning: unused function 'sys_nvic_priority_group_config' [-Wunused-function]
+   62 | static void sys_nvic_priority_group_config(uint8_t group);                      /* <C9><E8><D6><C3>NVIC<B7><D6><D7><E9> */
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+1 warning generated.
+compiling key.c...
+../../Drivers/BSP/CH9350/ch9350.c(5): warning: In file included from...
+../../Drivers\./SYSTEM/sys/sys.h(62): warning: unused function 'sys_nvic_priority_group_config' [-Wunused-function]
+   62 | static void sys_nvic_priority_group_config(uint8_t group);                      /* <C9><E8><D6><C3>NVIC<B7><D6><D7><E9> */
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+1 warning generated.
+compiling ch9350.c...
+../../Drivers/BSP/LCD/ltdc.c(3): warning: In file included from...
+../../Drivers\./BSP/LCD/lcd.h(7): warning: In file included from...
+../../Drivers\./SYSTEM/sys/sys.h(62): warning: unused function 'sys_nvic_priority_group_config' [-Wunused-function]
+   62 | static void sys_nvic_priority_group_config(uint8_t group);                      /* <C9><E8><D6><C3>NVIC<B7><D6><D7><E9> */
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+1 warning generated.
+compiling ltdc.c...
+../../Drivers/BSP/LCD/lcd.c(1114): warning: array subscript is of type 'char' [-Wchar-subscripts]
+ 1114 |             pfont = (uint8_t *)asc2_1206[chr];  /* <B5><F7><D3><C3>1206<D7><D6><CC><E5> */
+      |                                         ^~~~
+../../Drivers/BSP/LCD/lcd.c(1118): warning: array subscript is of type 'char' [-Wchar-subscripts]
+ 1118 |             pfont = (uint8_t *)asc2_1608[chr];  /* <B5><F7><D3><C3>1608<D7><D6><CC><E5> */
+      |                                         ^~~~
+../../Drivers/BSP/LCD/lcd.c(1122): warning: array subscript is of type 'char' [-Wchar-subscripts]
+ 1122 |             pfont = (uint8_t *)asc2_2412[chr];  /* <B5><F7><D3><C3>2412<D7><D6><CC><E5> */
+      |                                         ^~~~
+../../Drivers/BSP/LCD/lcd.c(1126): warning: array subscript is of type 'char' [-Wchar-subscripts]
+ 1126 |             pfont = (uint8_t *)asc2_3216[chr];  /* <B5><F7><D3><C3>3216<D7><D6><CC><E5> */
+      |                                         ^~~~
+../../Drivers/BSP/LCD/lcd.c(4): warning: In file included from...
+../../Drivers\./BSP/LCD/lcd.h(7): warning: In file included from...
+../../Drivers\./SYSTEM/sys/sys.h(62): warning: unused function 'sys_nvic_priority_group_config' [-Wunused-function]
+   62 | static void sys_nvic_priority_group_config(uint8_t group);                      /* <C9><E8><D6><C3>NVIC<B7><D6><D7><E9> */
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+5 warnings generated.
+compiling lcd.c...
+../../Drivers/BSP/24CXX/24cxx.c(3): warning: In file included from...
+../../Drivers\./BSP/IIC/myiic.h(6): warning: In file included from...
+../../Drivers\./SYSTEM/sys/sys.h(62): warning: unused function 'sys_nvic_priority_group_config' [-Wunused-function]
+   62 | static void sys_nvic_priority_group_config(uint8_t group);                      /* <C9><E8><D6><C3>NVIC<B7><D6><D7><E9> */
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+1 warning generated.
+compiling 24cxx.c...
+../../Drivers/BSP/IIC/myiic.c(3): warning: In file included from...
+../../Drivers\./BSP/IIC/myiic.h(6): warning: In file included from...
+../../Drivers\./SYSTEM/sys/sys.h(62): warning: unused function 'sys_nvic_priority_group_config' [-Wunused-function]
+   62 | static void sys_nvic_priority_group_config(uint8_t group);                      /* <C9><E8><D6><C3>NVIC<B7><D6><D7><E9> */
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+1 warning generated.
+compiling myiic.c...
+../../Drivers/BSP/TOUCH/ctiic.c(3): warning: In file included from...
+../../Drivers\./BSP/TOUCH/ctiic.h(6): warning: In file included from...
+../../Drivers\./SYSTEM/sys/sys.h(62): warning: unused function 'sys_nvic_priority_group_config' [-Wunused-function]
+   62 | static void sys_nvic_priority_group_config(uint8_t group);                      /* <C9><E8><D6><C3>NVIC<B7><D6><D7><E9> */
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+1 warning generated.
+compiling ctiic.c...
+../../Drivers/BSP/TOUCH/ft5206.c(131): warning: unused parameter 'mode' [-Wunused-parameter]
+  131 | uint8_t ft5206_scan(uint8_t mode)
+      |                             ^
+../../Drivers/BSP/TOUCH/ft5206.c(4): warning: In file included from...
+../../Drivers\./BSP/LCD/lcd.h(7): warning: In file included from...
+../../Drivers\./SYSTEM/sys/sys.h(62): warning: unused function 'sys_nvic_priority_group_config' [-Wunused-function]
+   62 | static void sys_nvic_priority_group_config(uint8_t group);                      /* <C9><E8><D6><C3>NVIC<B7><D6><D7><E9> */
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../../Drivers/BSP/TOUCH/ft5206.c(5): warning: In file included from...
+../../Drivers\./BSP/TOUCH/touch.h(88): warning: unused function 'tp_write_byte' [-Wunused-function]
+   88 | static void tp_write_byte(uint8_t data);                /* <CF><F2><BF><D8><D6><C6>оƬд<C8><EB>һ<B8><F6><CA><FD><BE><DD> */
+      |             ^~~~~~~~~~~~~
+../../Drivers\./BSP/TOUCH/touch.h(89): warning: unused function 'tp_read_ad' [-Wunused-function]
+   89 | static uint16_t tp_read_ad(uint8_t cmd);                /* <B6><C1>ȡADת<BB><BB>ֵ */
+      |                 ^~~~~~~~~~
+../../Drivers\./BSP/TOUCH/touch.h(90): warning: unused function 'tp_read_xoy' [-Wunused-function]
+   90 | static uint16_t tp_read_xoy(uint8_t cmd);               /* <B4><F8><C2>˲<A8><B5><C4><D7><F8><B1><EA><B6><C1>ȡ(X/Y) */
+      |                 ^~~~~~~~~~~
+../../Drivers\./BSP/TOUCH/touch.h(91): warning: unused function 'tp_read_xy' [-Wunused-function]
+   91 | static void tp_read_xy(uint16_t *x, uint16_t *y);       /* ˫<B7><BD><CF><F2><B6><C1>ȡ(X+Y) */
+      |             ^~~~~~~~~~
+../../Drivers\./BSP/TOUCH/touch.h(92): warning: unused function 'tp_read_xy2' [-Wunused-function]
+   92 | static uint8_t tp_read_xy2(uint16_t *x, uint16_t *y);   /* <B4><F8><BC><D3>ǿ<C2>˲<A8><B5><C4>˫<B7><BD><CF><F2><D7><F8><B1><EA><B6><C1>ȡ */
+      |                ^~~~~~~~~~~
+../../Drivers\./BSP/TOUCH/touch.h(93): warning: unused function 'tp_draw_touch_point' [-Wunused-function]
+   93 | static void tp_draw_touch_point(uint16_t x, uint16_t y, uint16_t color);    /* <BB><AD>һ<B8><F6><D7><F8><B1><EA>У<U+05FC><B5><E3> */
+      |             ^~~~~~~~~~~~~~~~~~~
+../../Drivers\./BSP/TOUCH/touch.h(94): warning: unused function 'tp_adjust_info_show' [-Wunused-function]
+   94 | static void tp_adjust_info_show(uint16_t xy[5][2], double px, double py);   /* <CF><D4>ʾУ<U+05FC><D0><C5>Ϣ */
+      |             ^~~~~~~~~~~~~~~~~~~
+9 warnings generated.
+compiling ft5206.c...
+../../Drivers/BSP/TOUCH/gt9xxx.c(4): warning: In file included from...
+../../Drivers\./BSP/LCD/lcd.h(7): warning: In file included from...
+../../Drivers\./SYSTEM/sys/sys.h(62): warning: unused function 'sys_nvic_priority_group_config' [-Wunused-function]
+   62 | static void sys_nvic_priority_group_config(uint8_t group);                      /* <C9><E8><D6><C3>NVIC<B7><D6><D7><E9> */
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../../Drivers/BSP/TOUCH/gt9xxx.c(5): warning: In file included from...
+../../Drivers\./BSP/TOUCH/touch.h(88): warning: unused function 'tp_write_byte' [-Wunused-function]
+   88 | static void tp_write_byte(uint8_t data);                /* <CF><F2><BF><D8><D6><C6>оƬд<C8><EB>һ<B8><F6><CA><FD><BE><DD> */
+      |             ^~~~~~~~~~~~~
+../../Drivers\./BSP/TOUCH/touch.h(89): warning: unused function 'tp_read_ad' [-Wunused-function]
+   89 | static uint16_t tp_read_ad(uint8_t cmd);                /* <B6><C1>ȡADת<BB><BB>ֵ */
+      |                 ^~~~~~~~~~
+../../Drivers\./BSP/TOUCH/touch.h(90): warning: unused function 'tp_read_xoy' [-Wunused-function]
+   90 | static uint16_t tp_read_xoy(uint8_t cmd);               /* <B4><F8><C2>˲<A8><B5><C4><D7><F8><B1><EA><B6><C1>ȡ(X/Y) */
+      |                 ^~~~~~~~~~~
+../../Drivers\./BSP/TOUCH/touch.h(91): warning: unused function 'tp_read_xy' [-Wunused-function]
+   91 | static void tp_read_xy(uint16_t *x, uint16_t *y);       /* ˫<B7><BD><CF><F2><B6><C1>ȡ(X+Y) */
+      |             ^~~~~~~~~~
+../../Drivers\./BSP/TOUCH/touch.h(92): warning: unused function 'tp_read_xy2' [-Wunused-function]
+   92 | static uint8_t tp_read_xy2(uint16_t *x, uint16_t *y);   /* <B4><F8><BC><D3>ǿ<C2>˲<A8><B5><C4>˫<B7><BD><CF><F2><D7><F8><B1><EA><B6><C1>ȡ */
+      |                ^~~~~~~~~~~
+../../Drivers\./BSP/TOUCH/touch.h(93): warning: unused function 'tp_draw_touch_point' [-Wunused-function]
+   93 | static void tp_draw_touch_point(uint16_t x, uint16_t y, uint16_t color);    /* <BB><AD>һ<B8><F6><D7><F8><B1><EA>У<U+05FC><B5><E3> */
+      |             ^~~~~~~~~~~~~~~~~~~
+../../Drivers\./BSP/TOUCH/touch.h(94): warning: unused function 'tp_adjust_info_show' [-Wunused-function]
+   94 | static void tp_adjust_info_show(uint16_t xy[5][2], double px, double py);   /* <CF><D4>ʾУ<U+05FC><D0><C5>Ϣ */
+      |             ^~~~~~~~~~~~~~~~~~~
+8 warnings generated.
+compiling gt9xxx.c...
+../../Middlewares/FatFs/diskio.c(5): warning: In file included from...
+../../Drivers\./BSP/SDMMC/sdmmc_sdcard.h(3): warning: In file included from...
+../../Drivers\./SYSTEM/sys/sys.h(62): warning: unused function 'sys_nvic_priority_group_config' [-Wunused-function]
+   62 | static void sys_nvic_priority_group_config(uint8_t group);                      /* <C9><E8><D6><C3>NVIC<B7><D6><D7><E9> */
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+1 warning generated.
+compiling diskio.c...
+../../Drivers/BSP/TOUCH/touch.c(16): warning: suggest braces around initialization of subobject [-Wmissing-braces]
+   16 |     0,
+      |     ^~
+      |     {
+   17 |     0,
+      |     ~~
+   18 |     0,
+      |     ~~
+   19 |     0,
+      |     ~~
+   20 |     0,
+      |     ~~
+   21 |     0,
+      |     ~~
+   22 |     0,
+      |     ~~
+   23 |     0,
+      |     ~
+      |      }
+../../Drivers/BSP/TOUCH/touch.c(24): warning: missing field 'y' initializer [-Wmissing-field-initializers]
+   24 | };
+      | ^
+../../Drivers/BSP/TOUCH/touch.c(5): warning: In file included from...
+../../Drivers\./BSP/LCD/lcd.h(7): warning: In file included from...
+../../Drivers\./SYSTEM/sys/sys.h(62): warning: unused function 'sys_nvic_priority_group_config' [-Wunused-function]
+   62 | static void sys_nvic_priority_group_config(uint8_t group);                      /* <C9><E8><D6><C3>NVIC<B7><D6><D7><E9> */
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+3 warnings generated.
+compiling touch.c...
+compiling list.c...
+compiling event_groups.c...
+../../Drivers/BSP/SDMMC/sdmmc_sdcard.c(1): warning: In file included from...
+../../Drivers/BSP/SDMMC\sdmmc_sdcard.h(3): warning: In file included from...
+../../Drivers\./SYSTEM/sys/sys.h(62): warning: unused function 'sys_nvic_priority_group_config' [-Wunused-function]
+   62 | static void sys_nvic_priority_group_config(uint8_t group);                      /* <C9><E8><D6><C3>NVIC<B7><D6><D7><E9> */
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+1 warning generated.
+compiling sdmmc_sdcard.c...
+compiling ff.c...
+compiling queue.c...
+compiling stream_buffer.c...
+compiling port.c...
+compiling timers.c...
+compiling tasks.c...
+compiling heap_4.c...
+linking...
+Program Size: Code=134758 RO-data=21522 RW-data=104 ZI-data=2418144  
+FromELF: creating hex file...
+"..\..\Output\atk_h743.axf" - 0 Error(s), 67 Warning(s).
+
+<h2>Software Packages used:</h2>
+
+Package Vendor: Keil
+                https://www.keil.com/pack/Keil.STM32H7xx_DFP.4.1.3.pack
+                Keil::STM32H7xx_DFP@4.1.3
+                STMicroelectronics STM32H7 Series Device Support
+
+<h2>Collection of Component include folders:</h2>
+
+<h2>Collection of Component Files used:</h2>
+Build Time Elapsed:  00:00:05
+</pre>
+</body>
+</html>

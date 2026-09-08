@@ -1,0 +1,12 @@
+*** Using Compiler 'V6.24', folder: 'D:\stm app\ARM\ARMCLANG\Bin'
+Build target 'TOUCH'
+../../App/app_ui.c(3): warning: In file included from...../../Drivers\./BSP/LCD/lcd.h(7): warning: In file included from...../../Drivers\./SYSTEM/sys/sys.h(62): warning: unused function 'sys_nvic_priority_group_config' [-Wunused-function]
+   62 | static void sys_nvic_priority_group_config(uint8_t group);                      /* <C9><E8><D6><C3>NVIC<B7><D6><D7><E9> */
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+1 warning generated.
+compiling app_ui.c...
+linking...
+Program Size: Code=61378 RO-data=15362 RW-data=92 ZI-data=2182900  
+FromELF: creating hex file...
+"..\..\Output\atk_h743.axf" - 0 Error(s), 1 Warning(s).
+Build Time Elapsed:  00:00:02

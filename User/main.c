@@ -1,3 +1,11 @@
+/**
+ * @file main.c
+ * @brief 完成板级上电初始化、外设自检、任务创建并启动 FreeRTOS 调度器。
+ * @details 这是 main 模块的实现文件（User/main.c）。调用本模块接口时，应遵守
+ *          相应外设初始化顺序、缓冲区有效期和 FreeRTOS 任务上下文约束。
+ * @note 文件采用 UTF-8 编码；硬件资源分配以板级原理图和工程配置为准。
+ */
+
 #include "./SYSTEM/sys/sys.h"
 #include "./SYSTEM/usart/usart.h"
 #include "./SYSTEM/delay/delay.h"
@@ -22,6 +30,7 @@
 #include "app_health.h"
 #include "app_diagnostics.h"
 
+/** @name 编译期配置与硬件参数：集中定义本模块使用的常量和宏。 */
 #define LCD_WIDTH              800U
 #define LCD_HEIGHT             480U
 #define SDRAM_TEST_ADDRESS     (BANK5_SDRAM_ADDR + 0x00200000U)
@@ -51,6 +60,12 @@ static uint8_t g_touch_ok;
 static uint8_t g_product_id[5];
 static const char *g_controller_id = "NONE";
 
+/**
+ * @brief at24c02_probe：执行设备探测或自检，并将检测结果返回或记录给上层模块。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static uint8_t at24c02_probe(void)
 {
     uint8_t no_ack;
@@ -64,6 +79,12 @@ static uint8_t at24c02_probe(void)
     return (no_ack == 0U) ? 1U : 0U;
 }
 
+/**
+ * @brief touch_i2c_diagnose：检查触摸 I2C 总线空闲电平并扫描有效的从设备地址。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
+ */
 static void touch_i2c_diagnose(void)
                                  {
     uint8_t address;
@@ -99,6 +120,12 @@ static void touch_i2c_diagnose(void)
            touch_bus_scl, touch_bus_sda, touch_scan_count);
 }
 
+/**
+ * @brief sdram_test：使用两组地址相关测试数据检查 SDRAM 基本读写可靠性。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static uint8_t sdram_test(void)
 {
     volatile uint32_t *memory;
@@ -137,6 +164,13 @@ static uint8_t sdram_test(void)
     return 1U;
 }
 
+/**
+ * @brief fatal_blink：在不可恢复的启动故障发生后按故障码循环闪烁 LED，阻止系统继续运行。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param code 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 static void fatal_blink(uint8_t code)
 {
     uint8_t count;
@@ -154,11 +188,16 @@ static void fatal_blink(uint8_t code)
     }
 }
 
+/**
+ * @brief touch_controller_init：按依赖顺序配置硬件或模块状态，为后续访问建立有效运行环境。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
+ */
 static void touch_controller_init(void)
 {
     g_touch_ok = 0U;
 
-    /* The 800x480 panel is sold with either FT/CST or GT9xxx touch ICs. */
     if (ft5206_init() == 0U)
     {
         tp_dev.scan = ft5206_scan;
@@ -184,6 +223,13 @@ static void touch_controller_init(void)
     }
 }
 
+/**
+ * @brief app_tasks_start：启动或启用函数名所描述的硬件功能与业务流程。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
+ * @warning 该入口具有特定中断或任务上下文，禁止执行不符合该上下文约束的操作。
+ */
 static void app_tasks_start(void)
 {
     if (app_storage_init() != pdPASS)
@@ -267,6 +313,12 @@ static void app_tasks_start(void)
 #endif
 }
 
+/**
+ * @brief main：完成板级硬件初始化与自检，创建应用任务并启动 FreeRTOS 调度器。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 int main(void)
 {
     sys_stm32_clock_init(160, 5, 2, 4);
