@@ -1,3 +1,11 @@
+/**
+ * @file app_fault.c
+ * @brief 记录系统故障、维护故障快照并提供异常处理入口。
+ * @details 这是 app_fault 模块的实现文件（App/app_fault.c）。调用本模块接口时，应遵守
+ *          相应外设初始化顺序、缓冲区有效期和 FreeRTOS 任务上下文约束。
+ * @note 文件采用 UTF-8 编码；硬件资源分配以板级原理图和工程配置为准。
+ */
+
 #include "app_fault.h"
 
 #include <stddef.h>
@@ -10,6 +18,7 @@
 #include "app_logs.h"
 #include "app_storage.h"
 
+/** @name 编译期配置与硬件参数：集中定义本模块使用的常量和宏。 */
 #define APP_FAULT_MAGIC        0x46544C31UL
 #define APP_FAULT_VERSION      1U
 #define APP_FAULT_BKPSRAM      0x38800000UL
@@ -23,11 +32,24 @@ static TickType_t g_fault_last_attempt;
 static char g_fault_log_buffer[512];
 static app_fault_record_t g_boot_record;
 
+/**
+ * @brief app_fault_storage：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static volatile app_fault_record_t *app_fault_storage(void)
 {
     return (volatile app_fault_record_t *)APP_FAULT_BKPSRAM;
 }
 
+/**
+ * @brief app_fault_checksum：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param record 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static uint32_t app_fault_checksum(const app_fault_record_t *record)
 {
     const uint8_t *bytes;
@@ -44,6 +66,12 @@ static uint32_t app_fault_checksum(const app_fault_record_t *record)
     return hash;
 }
 
+/**
+ * @brief app_fault_flush_storage：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
+ */
 static void app_fault_flush_storage(void)
 {
     SCB_CleanDCache_by_Addr((uint32_t *)app_fault_storage(),
@@ -51,6 +79,15 @@ static void app_fault_flush_storage(void)
     __DSB();
 }
 
+/**
+ * @brief app_fault_copy_task：作为 FreeRTOS 任务入口，循环处理事件、周期工作和运行状态。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param destination 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param source 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ * @warning 该入口具有特定中断或任务上下文，禁止执行不符合该上下文约束的操作。
+ */
 static void app_fault_copy_task(volatile char *destination,
                                 const char *source)
 {
@@ -71,6 +108,12 @@ static void app_fault_copy_task(volatile char *destination,
     }
 }
 
+/**
+ * @brief app_fault_init：按依赖顺序配置硬件或模块状态，为后续访问建立有效运行环境。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
+ */
 void app_fault_init(void)
 {
     app_fault_record_t record;
@@ -95,6 +138,13 @@ void app_fault_init(void)
     g_fault_last_attempt = 0U;
 }
 
+/**
+ * @brief app_fault_get_boot_record：读取指定寄存器、缓冲区或模块状态，并把结果提供给调用方。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param record 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 void app_fault_get_boot_record(app_fault_record_t *record)
 {
     if (record != NULL)
@@ -103,6 +153,13 @@ void app_fault_get_boot_record(app_fault_record_t *record)
     }
 }
 
+/**
+ * @brief app_fault_get_pending：读取指定寄存器、缓冲区或模块状态，并把结果提供给调用方。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param record 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 uint8_t app_fault_get_pending(app_fault_record_t *record)
 {
     volatile app_fault_record_t *stored;
@@ -124,6 +181,12 @@ uint8_t app_fault_get_pending(app_fault_record_t *record)
     return 1U;
 }
 
+/**
+ * @brief app_fault_clear：清除已有状态或复位目标设备，使其回到约定的初始状态。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
+ */
 void app_fault_clear(void)
 {
     volatile app_fault_record_t *stored;
@@ -133,6 +196,14 @@ void app_fault_clear(void)
     app_fault_flush_storage();
 }
 
+/**
+ * @brief app_fault_record：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param type 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param task_name 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 void app_fault_record(app_fault_type_t type, const char *task_name)
 {
     volatile app_fault_record_t *stored;
@@ -165,6 +236,14 @@ void app_fault_record(app_fault_type_t type, const char *task_name)
     __ISB();
 }
 
+/**
+ * @brief app_fault_record_assert：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param file 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param line 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 void app_fault_record_assert(const char *file, uint32_t line)
 {
     app_fault_record_t record;
@@ -191,6 +270,14 @@ void app_fault_record_assert(const char *file, uint32_t line)
     app_fault_flush_storage();
 }
 
+/**
+ * @brief app_fault_assert_and_reset：清除已有状态或复位目标设备，使其回到约定的初始状态。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param file 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param line 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 void app_fault_assert_and_reset(const char *file, uint32_t line)
 {
     app_fault_record_assert(file, line);
@@ -200,11 +287,23 @@ void app_fault_assert_and_reset(const char *file, uint32_t line)
     }
 }
 
+/**
+ * @brief app_fault_reported：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
+ */
 void app_fault_reported(void)
 {
     app_fault_clear();
 }
 
+/**
+ * @brief app_fault_publish_pending：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
+ */
 void app_fault_publish_pending(void)
 {
     app_fault_record_t record;
@@ -278,12 +377,28 @@ void app_fault_publish_pending(void)
     }
 }
 
+/**
+ * @brief app_fault_record_exception：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param type 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 void app_fault_record_exception(app_fault_type_t type)
 {
     app_fault_record(type, "EXCEPTION");
 }
 
 __attribute__((used, noinline, noreturn))
+/**
+ * @brief app_fault_exception_frame：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param stack 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param exception_return 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param type 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 void app_fault_exception_frame(uint32_t *stack,
                                uint32_t exception_return,
                                uint32_t type)
@@ -313,6 +428,14 @@ void app_fault_exception_frame(uint32_t *stack,
     }
 }
 
+/**
+ * @brief app_fault_panic：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param type 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param task_name 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 void app_fault_panic(app_fault_type_t type, const char *task_name)
 {
     app_fault_record(type, task_name);
@@ -322,17 +445,37 @@ void app_fault_panic(app_fault_type_t type, const char *task_name)
     }
 }
 
+/**
+ * @brief vApplicationStackOverflowHook：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param task 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param task_name 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 void vApplicationStackOverflowHook(TaskHandle_t task, char *task_name)
 {
     (void)task;
     app_fault_panic(APP_FAULT_STACK_OVERFLOW, task_name);
 }
 
+/**
+ * @brief vApplicationMallocFailedHook：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
+ */
 void vApplicationMallocFailedHook(void)
 {
     app_fault_panic(APP_FAULT_MALLOC_FAILED, "MALLOC");
 }
 
+/**
+ * @brief HardFault_Handler：响应中断或异步回调，完成必要的数据转移和状态通知。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
+ */
 __attribute__((naked)) void HardFault_Handler(void)
 {
     __asm volatile(
@@ -345,6 +488,12 @@ __attribute__((naked)) void HardFault_Handler(void)
         "b app_fault_exception_frame\n");
 }
 
+/**
+ * @brief BusFault_Handler：响应中断或异步回调，完成必要的数据转移和状态通知。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
+ */
 __attribute__((naked)) void BusFault_Handler(void)
 {
     __asm volatile(
@@ -357,6 +506,12 @@ __attribute__((naked)) void BusFault_Handler(void)
         "b app_fault_exception_frame\n");
 }
 
+/**
+ * @brief UsageFault_Handler：响应中断或异步回调，完成必要的数据转移和状态通知。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
+ */
 __attribute__((naked)) void UsageFault_Handler(void)
 {
     __asm volatile(

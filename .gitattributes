@@ -1,0 +1,19 @@
+* text=auto
+
+*.c -text
+*.h -text
+*.md text eol=lf
+*.txt -text
+*.s -text
+*.sct -text
+*.uvprojx -text
+*.dbgconf -text
+*.hex -text
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.pdf binary
+*.zip binary
+*.axf binary
+*.o binary

@@ -1,12 +1,22 @@
+/**
+ * @file app_mouse.c
+ * @brief 解析 CH9350 鼠标数据并维护指针位置和按键状态。
+ * @details 这是 app_mouse 模块的实现文件（App/app_mouse.c）。调用本模块接口时，应遵守
+ *          相应外设初始化顺序、缓冲区有效期和 FreeRTOS 任务上下文约束。
+ * @note 文件采用 UTF-8 编码；硬件资源分配以板级原理图和工程配置为准。
+ */
+
 #include "app_mouse.h"
 
 #include <stddef.h>
 
 #include "task.h"
 
+/** @name 编译期配置与硬件参数：集中定义本模块使用的常量和宏。 */
 #define APP_MOUSE_BUTTON_LEFT     0x01U
 #define APP_MOUSE_BUTTON_RIGHT    0x02U
 
+/** @brief 模块数据类型：描述本模块维护的状态、配置或数据快照。 */
 typedef struct
 {
     QueueHandle_t event_queue;
@@ -21,6 +31,14 @@ typedef struct
 
 static app_mouse_state_t g_mouse;
 
+/**
+ * @brief app_mouse_scale_delta：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param delta 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param remainder 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static int16_t app_mouse_scale_delta(int8_t delta, int16_t *remainder)
 {
     uint8_t sensitivity;
@@ -45,6 +63,12 @@ static int16_t app_mouse_scale_delta(int8_t delta, int16_t *remainder)
     return (int16_t)delta;
 }
 
+/**
+ * @brief app_mouse_limit_position：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
+ */
 static void app_mouse_limit_position(void)
 {
     if (g_mouse.x < 0)
@@ -66,6 +90,15 @@ static void app_mouse_limit_position(void)
     }
 }
 
+/**
+ * @brief app_mouse_send：把调用方数据写入目标寄存器、缓冲区或模块状态。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param type 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param wheel 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param buttons 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 static void app_mouse_send(app_input_event_type_t type,
                            int8_t wheel,
                            uint8_t buttons)
@@ -82,6 +115,13 @@ static void app_mouse_send(app_input_event_type_t type,
     app_input_post_event(g_mouse.event_queue, &event);
 }
 
+/**
+ * @brief app_mouse_init：按依赖顺序配置硬件或模块状态，为后续访问建立有效运行环境。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param event_queue 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 void app_mouse_init(QueueHandle_t event_queue)
 {
     g_mouse.event_queue = event_queue;
@@ -94,6 +134,14 @@ void app_mouse_init(QueueHandle_t event_queue)
     g_mouse.pending_buttons = 0U;
 }
 
+/**
+ * @brief app_mouse_set_position：把调用方数据写入目标寄存器、缓冲区或模块状态。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param x 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param y 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 void app_mouse_set_position(uint16_t x, uint16_t y)
 {
     g_mouse.x = (int32_t)x;
@@ -101,6 +149,13 @@ void app_mouse_set_position(uint16_t x, uint16_t y)
     app_mouse_limit_position();
 }
 
+/**
+ * @brief app_mouse_process_report：解析并处理当前事件或数据，根据结果推进模块状态。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param report 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 void app_mouse_process_report(const ch9350_mouse_report_t *report)
 {
     uint8_t changed_buttons;
@@ -151,6 +206,12 @@ void app_mouse_process_report(const ch9350_mouse_report_t *report)
     g_mouse.previous_buttons = report->buttons;
 }
 
+/**
+ * @brief app_mouse_disconnect：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
+ */
 void app_mouse_disconnect(void)
 {
     app_mouse_flush();
@@ -165,6 +226,12 @@ void app_mouse_disconnect(void)
     g_mouse.pending_buttons = 0U;
 }
 
+/**
+ * @brief app_mouse_flush：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
+ */
 void app_mouse_flush(void)
 {
     if (g_mouse.pending_move)

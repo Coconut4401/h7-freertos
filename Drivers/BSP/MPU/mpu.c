@@ -1,4 +1,10 @@
-
+/**
+ * @file mpu.c
+ * @brief 配置 Cortex-M7 MPU 区域属性，保障缓存和外设内存访问一致性。
+ * @details 这是 mpu 模块的实现文件（Drivers/BSP/MPU/mpu.c）。调用本模块接口时，应遵守
+ *          相应外设初始化顺序、缓冲区有效期和 FreeRTOS 任务上下文约束。
+ * @note 文件采用 UTF-8 编码；硬件资源分配以板级原理图和工程配置为准。
+ */
 
 #include "./SYSTEM/usart/usart.h"
 #include "./SYSTEM/delay/delay.h"
@@ -6,33 +12,36 @@
 #include "./BSP/MPU/mpu.h"
 #include "app_fault.h"
 
-
 /**
- * @brief       禁止MPU保护
- * @param       无
- * @retval      无
+ * @brief mpu_disable：停止或禁用函数名所描述的硬件功能与业务流程。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
  */
 void mpu_disable(void)
 {
-    SCB->SHCSR &= ~(1 << 16);   /* 禁止MemManage */
-    MPU->CTRL &= ~(1 << 0);     /* 禁止MPU */
+    SCB->SHCSR &= ~(1 << 16);
+    MPU->CTRL &= ~(1 << 0);
 }
 
 /**
- * @brief       开启MPU保护
- * @param       无
- * @retval      无
+ * @brief mpu_enable：启动或启用函数名所描述的硬件功能与业务流程。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
  */
 void mpu_enable(void)
 {
-    MPU->CTRL = (1 << 2) | (1 << 0);    /* 使能PRIVDEFENA,使能MPU */
-    SCB->SHCSR |= 1 << 16;              /* 使能MemManage */
+    MPU->CTRL = (1 << 2) | (1 << 0);
+    SCB->SHCSR |= 1 << 16;
 }
 
 /**
- * @brief       禁止MPU保护
- * @param       nbytes:要转换的数据,字节数
- * @retval      nbytes以2为底的指数值
+ * @brief mpu_convert_bytes_to_pot：将输入值转换为调用方所需的数据格式或表示形式。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param nbytes 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
  */
 static uint8_t mpu_convert_bytes_to_pot(uint32_t nbytes)
 {
@@ -48,90 +57,73 @@ static uint8_t mpu_convert_bytes_to_pot(uint32_t nbytes)
 }
 
 /**
- * @brief       设置某个区域的MPU保护
- * @param       baseaddr: MPU保护区域的基址(首地址)
- * @param       size:MPU保护区域的大小(必须是32的倍数,单位为字节)
- * @param       rnum:MPU保护区编号,范围:0~7,最大支持8个保护区域
- * @param       de:禁止指令访问;0,允许指令访问;1,禁止指令访问
- * @param       ap:访问权限,访问关系如下:
- *   @arg       0,无访问（特权&用户都不可访问）
- *   @arg       1,仅支持特权读写访问
- *   @arg       2,禁止用户写访问（特权可读写访问）
- *   @arg       3,全访问（特权&用户都可访问）
- *   @arg       4,无法预测(禁止设置为4!!!)
- *   @arg       5,仅支持特权读访问
- *   @arg       6,只读（特权&用户都不可以写）
- * @note        详见:STM32F7编程手册.pdf,4.6节,Table 89.
- * @param       sen:是否允许共用;0,不允许;1,允许
- * @param       cen:是否允许cache;0,不允许;1,允许
- * @param       ben:是否允许缓冲;0,不允许;1,允许
- * @retval      0, 成功; 1, 错误;
+ * @brief mpu_set_protection：把调用方数据写入目标寄存器、缓冲区或模块状态。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param baseaddr 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param size 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param rnum 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param de 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param ap 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param sen 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param cen 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param ben 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
  */
 uint8_t mpu_set_protection(uint32_t baseaddr, uint32_t size, uint32_t rnum, uint8_t de, uint8_t ap, uint8_t sen, uint8_t cen, uint8_t ben)
 {
     uint32_t tempreg = 0;
     uint8_t rnr = 0;
 
-    if ((size % 32) || size == 0)return 1;      /* 大小不是32的倍数,或者size为0,说明参数错误 */
+    if ((size % 32) || size == 0)return 1;
 
-    rnr = mpu_convert_bytes_to_pot(size) - 1;   /* 转换为2为底的指数值 */
-    mpu_disable();                      /* 设置之前,先禁止MPU保护 */
-    MPU->RNR = rnum;                    /* 设置保护区域 */
-    MPU->RBAR = baseaddr;               /* 设置基址 */
-    tempreg |= ((uint32_t)de) << 28;    /* 禁止/允许指令访问(禁止/允许读取指令) */
-    tempreg |= ((uint32_t)ap) << 24;    /* 设置访问权限, */
-    tempreg |= 0 << 19;                 /* 设置类型扩展域为level0 */
-    tempreg |= ((uint32_t)sen) << 18;   /* 是否允许共用 */
-    tempreg |= ((uint32_t)cen) << 17;   /* 是否允许cache */
-    tempreg |= ((uint32_t)ben) << 16;   /* 是否允许缓冲 */
-    tempreg |= 0 << 8;                  /* 禁止子区域 */
-    tempreg |= rnr << 1;                /* 设置保护区域大小 */
-    tempreg |= 1 << 0;                  /* 使能该保护区域 */
-    MPU->RASR = tempreg;                /* 设置RASR寄存器 */
-    mpu_enable();                       /* 设置完毕,使能MPU保护 */
+    rnr = mpu_convert_bytes_to_pot(size) - 1;
+    mpu_disable();
+    MPU->RNR = rnum;
+    MPU->RBAR = baseaddr;
+    tempreg |= ((uint32_t)de) << 28;
+    tempreg |= ((uint32_t)ap) << 24;
+    tempreg |= 0 << 19;
+    tempreg |= ((uint32_t)sen) << 18;
+    tempreg |= ((uint32_t)cen) << 17;
+    tempreg |= ((uint32_t)ben) << 16;
+    tempreg |= 0 << 8;
+    tempreg |= rnr << 1;
+    tempreg |= 1 << 0;
+    MPU->RASR = tempreg;
+    mpu_enable();
     return 0;
 }
- 
+
 /**
- * @brief       设置需要保护的存储块
- * @note   
- *              必须对部分存储区域进行MPU保护,否则可能导致程序运行异常
- *              比如MCU屏不显示,摄像头采集数据出错等等问题...
- *
- * @param       无
- * @retval      nbytes以2为底的指数值
+ * @brief mpu_memory_protection：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
  */
 void mpu_memory_protection(void)
 {
-    /* 保护整个DTCM,共128K字节,允许指令访问,禁止共用,允许cache,允许缓冲 */
+
     mpu_set_protection(0x20000000, 128 * 1024, 1, 0, MPU_REGION_FULL_ACCESS, 0, 1, 1);
 
-    /* 保护整个AXI SRAM,共512K字节,允许指令访问,禁止共用,允许cache,允许缓冲 */
     mpu_set_protection(0x24000000, 512 * 1024, 2, 0, MPU_REGION_FULL_ACCESS, 0, 1, 1);
 
-    /* 保护整个SRAM1~SRAM3,共512K字节,允许指令访问,禁止共用,允许cache,允许缓冲 */
     mpu_set_protection(0x30000000, 512 * 1024, 3, 0, MPU_REGION_FULL_ACCESS, 0, 1, 1);
 
-    /* 保护整个SRAM4,共64K字节,允许指令访问,禁止共用,允许cache,允许缓冲 */
     mpu_set_protection(0x38000000, 64 * 1024, 4, 0, MPU_REGION_FULL_ACCESS, 0, 1, 1);
 
-    /* 保护MCU LCD屏所在的FMC区域,共64M字节,允许指令访问,禁止共用,禁止cache,禁止缓冲 */
     mpu_set_protection(0x60000000, 64 * 1024 * 1024, 5, 0, MPU_REGION_FULL_ACCESS, 0, 0, 0);
-    
-    /* Keep SDRAM non-cacheable so CPU, DMA2D and LTDC always see the same
-       framebuffer contents without explicit cache maintenance. */
+
     mpu_set_protection(0XC0000000, 32 * 1024 * 1024, 6, 0, MPU_REGION_FULL_ACCESS, 1, 0, 0);
-    
-    /* 保护整个NAND FLASH区域,共256M字节,禁止指令访问,禁止共用,禁止cache,禁止缓冲 */
+
     mpu_set_protection(0X80000000, 256 * 1024 * 1024, 7, 1, MPU_REGION_FULL_ACCESS, 0, 0, 0);
 }
 
 /**
- * @brief       MemManage错误处理中断
- * @note        进入此中断以后,将无法恢复程序运行!!
- *
- * @param       无
- * @retval      nbytes以2为底的指数值
+ * @brief MemManage_Handler：响应中断或异步回调，完成必要的数据转移和状态通知。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
  */
 __attribute__((naked)) void MemManage_Handler(void)
 {
@@ -144,17 +136,3 @@ __attribute__((naked)) void MemManage_Handler(void)
         "movs r2, #7\n"
         "b app_fault_exception_frame\n");
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-

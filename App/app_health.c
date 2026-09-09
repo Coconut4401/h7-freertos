@@ -1,3 +1,11 @@
+/**
+ * @file app_health.c
+ * @brief 周期检查任务与外设健康状态，并更新系统健康统计。
+ * @details 这是 app_health 模块的实现文件（App/app_health.c）。调用本模块接口时，应遵守
+ *          相应外设初始化顺序、缓冲区有效期和 FreeRTOS 任务上下文约束。
+ * @note 文件采用 UTF-8 编码；硬件资源分配以板级原理图和工程配置为准。
+ */
+
 #include "app_health.h"
 
 #include <stddef.h>
@@ -6,6 +14,7 @@
 #include "stm32h743xx.h"
 #include "timers.h"
 
+/** @name 编译期配置与硬件参数：集中定义本模块使用的常量和宏。 */
 #define APP_HEALTH_REQUIRED_MASK ((1UL << APP_HEALTH_COUNT) - 1UL)
 #define APP_HEALTH_PERIOD_MS     250U
 #define APP_HEALTH_STARTUP_MS    15000U
@@ -15,7 +24,8 @@
 #define APP_HEALTH_AUDIO_MAX_MS  5000U
 #define APP_HEALTH_MONITOR_MAX_MS 2000U
 #define APP_HEALTH_WATCHDOG_RELOAD 1875U
-#define APP_HEALTH_WATCHDOG_READY_MS 100U
+#define APP_HEALTH_LSI_READY_MS      100U
+#define APP_HEALTH_IWDG_UPDATE_MS    7000U
 #define APP_HEALTH_WATCHDOG_RETRY_MS 5000U
 #define APP_HEALTH_STACK_WARNING_WORDS 128U
 
@@ -25,6 +35,13 @@ static app_health_snapshot_t g_snapshot;
 static uint8_t g_watchdog_enabled;
 static TickType_t g_watchdog_last_attempt;
 
+/**
+ * @brief app_health_timeout_ms：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param id 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static uint32_t app_health_timeout_ms(app_health_task_id_t id)
 {
     static const uint32_t limits[APP_HEALTH_COUNT] =
@@ -38,6 +55,15 @@ static uint32_t app_health_timeout_ms(app_health_task_id_t id)
     return limits[id];
 }
 
+/**
+ * @brief app_health_task_handle：作为 FreeRTOS 任务入口，循环处理事件、周期工作和运行状态。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param context 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param id 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ * @warning 该入口具有特定中断或任务上下文，禁止执行不符合该上下文约束的操作。
+ */
 static TaskHandle_t app_health_task_handle(const app_health_context_t *context,
                                            app_health_task_id_t id)
 {
@@ -54,9 +80,19 @@ static TaskHandle_t app_health_task_handle(const app_health_context_t *context,
     }
 }
 
+/**
+ * @brief app_health_wait_bits：等待指定时长或硬件条件，以满足总线时序与同步要求。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param reg 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param mask 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param wait_for_set 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static uint8_t app_health_wait_bits(volatile uint32_t *reg,
                                     uint32_t mask,
-                                    uint8_t wait_for_set)
+                                    uint8_t wait_for_set,
+                                    uint32_t timeout_ms)
 {
     TickType_t started;
     uint8_t matched;
@@ -71,37 +107,63 @@ static uint8_t app_health_wait_bits(volatile uint32_t *reg,
         }
         vTaskDelay(pdMS_TO_TICKS(1U));
     } while ((TickType_t)(xTaskGetTickCount() - started) <
-             pdMS_TO_TICKS(APP_HEALTH_WATCHDOG_READY_MS));
+             pdMS_TO_TICKS(timeout_ms));
     return 0U;
 }
 
+/**
+ * @brief app_health_iwdg_start：启动或启用函数名所描述的硬件功能与业务流程。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static uint8_t app_health_iwdg_start(void)
 {
     RCC->CSR |= RCC_CSR_LSION;
-    if (!app_health_wait_bits(&RCC->CSR, RCC_CSR_LSIRDY, 1U))
+    if (!app_health_wait_bits(&RCC->CSR, RCC_CSR_LSIRDY, 1U,
+                              APP_HEALTH_LSI_READY_MS))
     {
         return 0U;
     }
+
+    /*
+     * STM32H7 requires the IWDG to be running before PR/RLR updates are
+     * synchronized into the watchdog clock domain.  Starting it after the
+     * PVU/RVU wait leaves both flags pending forever and WDG stays OFF.
+     */
+    DBGMCU->APB4FZ1 |= DBGMCU_APB4FZ1_DBG_IWDG1;
+    IWDG1->KR = 0xCCCCU;
     IWDG1->KR = 0x5555U;
     IWDG1->PR = 6U;
     IWDG1->RLR = APP_HEALTH_WATCHDOG_RELOAD;
     if (!app_health_wait_bits(&IWDG1->SR,
-                              IWDG_SR_PVU | IWDG_SR_RVU, 0U))
+                              IWDG_SR_PVU | IWDG_SR_RVU, 0U,
+                              APP_HEALTH_IWDG_UPDATE_MS))
     {
         return 0U;
     }
-    DBGMCU->APB4FZ1 |= DBGMCU_APB4FZ1_DBG_IWDG1;
-    IWDG1->KR = 0xCCCCU;
     IWDG1->KR = 0xAAAAU;
     g_watchdog_enabled = 1U;
     return 1U;
 }
 
+/**
+ * @brief app_health_iwdg_feed：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
+ */
 static void app_health_iwdg_feed(void)
 {
     IWDG1->KR = 0xAAAAU;
 }
 
+/**
+ * @brief app_health_init：按依赖顺序配置硬件或模块状态，为后续访问建立有效运行环境。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
+ */
 void app_health_init(void)
 {
     uint32_t index;
@@ -122,6 +184,13 @@ void app_health_init(void)
     g_snapshot.startup_complete = 0U;
 }
 
+/**
+ * @brief app_health_beat：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param task_id 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 void app_health_beat(app_health_task_id_t task_id)
 {
     if (task_id < APP_HEALTH_COUNT)
@@ -131,6 +200,13 @@ void app_health_beat(app_health_task_id_t task_id)
     }
 }
 
+/**
+ * @brief app_health_get_snapshot：读取指定寄存器、缓冲区或模块状态，并把结果提供给调用方。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param snapshot 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 void app_health_get_snapshot(app_health_snapshot_t *snapshot)
 {
     uint32_t index;
@@ -148,6 +224,14 @@ void app_health_get_snapshot(app_health_snapshot_t *snapshot)
     taskEXIT_CRITICAL();
 }
 
+/**
+ * @brief AppHealthTask：作为 FreeRTOS 任务入口，循环处理事件、周期工作和运行状态。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param argument 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ * @warning 该入口具有特定中断或任务上下文，禁止执行不符合该上下文约束的操作。
+ */
 void AppHealthTask(void *argument)
 {
     const app_health_context_t *context;

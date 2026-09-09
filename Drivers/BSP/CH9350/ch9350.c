@@ -1,9 +1,18 @@
+/**
+ * @file ch9350.c
+ * @brief 配置并读取 CH9350 USB 主机芯片，解析其串口 HID 数据。
+ * @details 这是 ch9350 模块的实现文件（Drivers/BSP/CH9350/ch9350.c）。调用本模块接口时，应遵守
+ *          相应外设初始化顺序、缓冲区有效期和 FreeRTOS 任务上下文约束。
+ * @note 文件采用 UTF-8 编码；硬件资源分配以板级原理图和工程配置为准。
+ */
+
 #include "ch9350.h"
 
 #include <stddef.h>
 
 #include "./SYSTEM/usart/usart.h"
 
+/** @name 编译期配置与硬件参数：集中定义本模块使用的常量和宏。 */
 #define CH9350_HEADER_0             0x57U
 #define CH9350_HEADER_1             0xABU
 #define CH9350_OPCODE_KEYBOARD      0x01U
@@ -17,6 +26,7 @@
 #define CH9350_STATE_REPORT_MASK    0x0FU
 #define CH9350_REPORT_ID_MOUSE_REL  0x02U
 
+/** @brief 模块数据类型：描述本模块维护的状态、配置或数据快照。 */
 typedef struct
 {
     uint8_t frame[CH9350_MAX_FRAME_SIZE];
@@ -27,6 +37,13 @@ typedef struct
 
 static ch9350_parser_t g_ch9350;
 
+/**
+ * @brief ch9350_set_mouse_connected：把调用方数据写入目标寄存器、缓冲区或模块状态。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param connected 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static uint8_t ch9350_set_mouse_connected(uint8_t connected)
 {
     connected = connected ? 1U : 0U;
@@ -49,6 +66,12 @@ static uint8_t ch9350_set_mouse_connected(uint8_t connected)
     return 1U;
 }
 
+/**
+ * @brief ch9350_toggle_mouse_connected：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static uint8_t ch9350_toggle_mouse_connected(void)
 {
     if (!g_ch9350.stats.connection_known)
@@ -60,6 +83,12 @@ static uint8_t ch9350_toggle_mouse_connected(void)
         g_ch9350.stats.mouse_connected ? 0U : 1U);
 }
 
+/**
+ * @brief ch9350_send_state_response：把调用方数据写入目标寄存器、缓冲区或模块状态。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
+ */
 static void ch9350_send_state_response(void)
 {
     static const uint8_t response[11] =
@@ -72,6 +101,13 @@ static void ch9350_send_state_response(void)
     usart_tx_write(response, (uint16_t)sizeof(response));
 }
 
+/**
+ * @brief ch9350_frame_length：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param opcode 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static uint8_t ch9350_frame_length(uint8_t opcode)
 {
     switch (opcode)
@@ -98,6 +134,13 @@ static uint8_t ch9350_frame_length(uint8_t opcode)
     }
 }
 
+/**
+ * @brief ch9350_restart_sync：使用最新数据更新缓存、硬件输出或界面显示状态。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param byte 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 static void ch9350_restart_sync(uint8_t byte)
 {
     g_ch9350.length = 0U;
@@ -109,6 +152,14 @@ static void ch9350_restart_sync(uint8_t byte)
     }
 }
 
+/**
+ * @brief ch9350_parse_byte：解析并处理当前事件或数据，根据结果推进模块状态。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param byte 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param event 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static uint8_t ch9350_parse_byte(uint8_t byte, ch9350_event_t *event)
 {
     uint8_t expected;
@@ -182,11 +233,7 @@ static uint8_t ch9350_parse_byte(uint8_t byte, ch9350_event_t *event)
     {
         g_ch9350.stats.state_frame_count++;
         g_ch9350.stats.last_state_value = g_ch9350.frame[3];
-        /*
-         * In state 2, opcode 0x80 reports which report ID changed.  It is
-         * not a bitmap of all devices currently connected.  The CH9350
-         * sends report ID 0x02 for both mouse insertion and removal.
-         */
+
         report_id = g_ch9350.frame[3] & CH9350_STATE_REPORT_MASK;
         g_ch9350.length = 0U;
         g_ch9350.expected_length = 0U;
@@ -220,6 +267,12 @@ static uint8_t ch9350_parse_byte(uint8_t byte, ch9350_event_t *event)
     return 0U;
 }
 
+/**
+ * @brief ch9350_init：按依赖顺序配置硬件或模块状态，为后续访问建立有效运行环境。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
+ */
 void ch9350_init(void)
 {
     uint8_t index;
@@ -244,6 +297,13 @@ void ch9350_init(void)
     ch9350_send_state_response();
 }
 
+/**
+ * @brief ch9350_read_event：读取指定寄存器、缓冲区或模块状态，并把结果提供给调用方。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param event 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 uint8_t ch9350_read_event(ch9350_event_t *event)
 {
     uint8_t byte;
@@ -264,6 +324,13 @@ uint8_t ch9350_read_event(ch9350_event_t *event)
     return 0U;
 }
 
+/**
+ * @brief ch9350_get_stats：读取指定寄存器、缓冲区或模块状态，并把结果提供给调用方。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param stats 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 void ch9350_get_stats(ch9350_stats_t *stats)
 {
     if (stats != NULL)

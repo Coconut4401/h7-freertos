@@ -1,3 +1,11 @@
+/**
+ * @file app_rtc.c
+ * @brief 访问 RTC 日历和时间寄存器，提供时间设置、读取和格式化能力。
+ * @details 这是 app_rtc 模块的实现文件（App/app_rtc.c）。调用本模块接口时，应遵守
+ *          相应外设初始化顺序、缓冲区有效期和 FreeRTOS 任务上下文约束。
+ * @note 文件采用 UTF-8 编码；硬件资源分配以板级原理图和工程配置为准。
+ */
+
 #include "app_rtc.h"
 
 #include <stdint.h>
@@ -7,6 +15,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
+/** @name 编译期配置与硬件参数：集中定义本模块使用的常量和宏。 */
 #define DS3231_ADDRESS_WRITE       0xD0U
 #define DS3231_ADDRESS_READ        0xD1U
 #define DS3231_REG_SECONDS         0x00U
@@ -15,6 +24,7 @@
 #define DS3231_STATUS_OSF          0x80U
 #define APP_RTC_REFRESH_MS         250U
 
+/** @brief 模块数据类型：描述本模块维护的状态、配置或数据快照。 */
 typedef struct
 {
     uint8_t available;
@@ -40,21 +50,50 @@ static void app_rtc_apply_compensation(
     const app_rtc_datetime_t *raw_datetime,
     app_rtc_datetime_t *corrected_datetime);
 
+/**
+ * @brief app_rtc_bcd_to_bin：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param value 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static uint8_t app_rtc_bcd_to_bin(uint8_t value)
 {
     return (uint8_t)((value >> 4U) * 10U + (value & 0x0FU));
 }
 
+/**
+ * @brief app_rtc_bin_to_bcd：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param value 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static uint8_t app_rtc_bin_to_bcd(uint8_t value)
 {
     return (uint8_t)(((value / 10U) << 4U) | (value % 10U));
 }
 
+/**
+ * @brief app_rtc_is_leap_year：检查函数名所描述的条件是否成立，并返回明确的判断结果。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param year 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static uint8_t app_rtc_is_leap_year(uint16_t year)
 {
     return ((year % 4U) == 0U) ? 1U : 0U;
 }
 
+/**
+ * @brief app_rtc_days_in_month：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param year 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param month 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static uint8_t app_rtc_days_in_month(uint16_t year, uint8_t month)
 {
     static const uint8_t days[12] =
@@ -70,6 +109,13 @@ static uint8_t app_rtc_days_in_month(uint16_t year, uint8_t month)
     return (month >= 1U && month <= 12U) ? days[month - 1U] : 0U;
 }
 
+/**
+ * @brief app_rtc_datetime_is_valid：检查函数名所描述的条件是否成立，并返回明确的判断结果。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param datetime 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static uint8_t app_rtc_datetime_is_valid(const app_rtc_datetime_t *datetime)
 {
     if (datetime == NULL || datetime->year < 2000U ||
@@ -85,6 +131,15 @@ static uint8_t app_rtc_datetime_is_valid(const app_rtc_datetime_t *datetime)
     return 1U;
 }
 
+/**
+ * @brief app_rtc_write_registers：把调用方数据写入目标寄存器、缓冲区或模块状态。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param reg 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param data 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param length 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static uint8_t app_rtc_write_registers(uint8_t reg,
                                        const uint8_t *data,
                                        uint8_t length)
@@ -117,6 +172,15 @@ static uint8_t app_rtc_write_registers(uint8_t reg,
     return 1U;
 }
 
+/**
+ * @brief app_rtc_read_registers：读取指定寄存器、缓冲区或模块状态，并把结果提供给调用方。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param reg 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param data 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param length 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static uint8_t app_rtc_read_registers(uint8_t reg,
                                       uint8_t *data,
                                       uint8_t length)
@@ -151,11 +215,25 @@ static uint8_t app_rtc_read_registers(uint8_t reg,
     return 1U;
 }
 
+/**
+ * @brief app_rtc_read_status：读取指定寄存器、缓冲区或模块状态，并把结果提供给调用方。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param status 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static uint8_t app_rtc_read_status(uint8_t *status)
 {
     return app_rtc_read_registers(DS3231_REG_STATUS, status, 1U);
 }
 
+/**
+ * @brief app_rtc_read_datetime：读取指定寄存器、缓冲区或模块状态，并把结果提供给调用方。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param datetime 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static uint8_t app_rtc_read_datetime(app_rtc_datetime_t *datetime)
 {
     uint8_t data[7];
@@ -187,6 +265,13 @@ static uint8_t app_rtc_read_datetime(app_rtc_datetime_t *datetime)
     return app_rtc_datetime_is_valid(datetime);
 }
 
+/**
+ * @brief app_rtc_write_datetime：把调用方数据写入目标寄存器、缓冲区或模块状态。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param datetime 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static uint8_t app_rtc_write_datetime(const app_rtc_datetime_t *datetime)
 {
     uint8_t data[7];
@@ -201,6 +286,13 @@ static uint8_t app_rtc_write_datetime(const app_rtc_datetime_t *datetime)
     return app_rtc_write_registers(DS3231_REG_SECONDS, data, sizeof(data));
 }
 
+/**
+ * @brief app_rtc_month_from_text：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param text 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static uint8_t app_rtc_month_from_text(const char *text)
 {
     static const char *const months[12] =
@@ -221,11 +313,24 @@ static uint8_t app_rtc_month_from_text(const char *text)
     return 1U;
 }
 
+/**
+ * @brief app_rtc_decimal_pair：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param text 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static uint8_t app_rtc_decimal_pair(const char *text)
 {
     return (uint8_t)((text[0] - '0') * 10 + text[1] - '0');
 }
 
+/**
+ * @brief app_rtc_build_datetime：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static app_rtc_datetime_t app_rtc_build_datetime(void)
 {
     app_rtc_datetime_t datetime;
@@ -246,6 +351,12 @@ static app_rtc_datetime_t app_rtc_build_datetime(void)
     return datetime;
 }
 
+/**
+ * @brief app_rtc_init：按依赖顺序配置硬件或模块状态，为后续访问建立有效运行环境。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
+ */
 void app_rtc_init(void)
 {
     uint8_t status;
@@ -309,11 +420,23 @@ void app_rtc_init(void)
            APP_RTC_COMPENSATION_PPM);
 }
 
+/**
+ * @brief app_rtc_is_available：检查函数名所描述的条件是否成立，并返回明确的判断结果。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 uint8_t app_rtc_is_available(void)
 {
     return g_rtc.available;
 }
 
+/**
+ * @brief app_rtc_update：使用最新数据更新缓存、硬件输出或界面显示状态。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
+ */
 void app_rtc_update(void)
 {
     TickType_t now;
@@ -337,6 +460,13 @@ void app_rtc_update(void)
     }
 }
 
+/**
+ * @brief app_rtc_days_before_year：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param year 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static uint32_t app_rtc_days_before_year(uint16_t year)
 {
     uint32_t days;
@@ -350,6 +480,13 @@ static uint32_t app_rtc_days_before_year(uint16_t year)
     return days;
 }
 
+/**
+ * @brief app_rtc_datetime_to_seconds：将输入值转换为调用方所需的数据格式或表示形式。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param datetime 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static uint32_t app_rtc_datetime_to_seconds(const app_rtc_datetime_t *datetime)
 {
     uint32_t days;
@@ -365,6 +502,14 @@ static uint32_t app_rtc_datetime_to_seconds(const app_rtc_datetime_t *datetime)
            (uint32_t)datetime->minute * 60U + datetime->second;
 }
 
+/**
+ * @brief app_rtc_seconds_to_datetime：将输入值转换为调用方所需的数据格式或表示形式。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param total_seconds 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param datetime 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 static void app_rtc_seconds_to_datetime(uint32_t total_seconds,
                                         app_rtc_datetime_t *datetime)
 {
@@ -392,6 +537,14 @@ static void app_rtc_seconds_to_datetime(uint32_t total_seconds,
     datetime->day = 1U;
 }
 
+/**
+ * @brief app_rtc_apply_compensation：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param raw_datetime 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param corrected_datetime 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 static void app_rtc_apply_compensation(
     const app_rtc_datetime_t *raw_datetime,
     app_rtc_datetime_t *corrected_datetime)
@@ -418,6 +571,13 @@ static void app_rtc_apply_compensation(
         corrected_datetime);
 }
 
+/**
+ * @brief app_rtc_get_datetime：读取指定寄存器、缓冲区或模块状态，并把结果提供给调用方。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param datetime 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 uint8_t app_rtc_get_datetime(app_rtc_datetime_t *datetime)
 {
     if (!g_rtc.available || datetime == NULL)
@@ -428,6 +588,13 @@ uint8_t app_rtc_get_datetime(app_rtc_datetime_t *datetime)
     return 1U;
 }
 
+/**
+ * @brief app_rtc_set_datetime：把调用方数据写入目标寄存器、缓冲区或模块状态。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param datetime 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 uint8_t app_rtc_set_datetime(const app_rtc_datetime_t *datetime)
 {
     app_rtc_datetime_t value;
@@ -463,6 +630,12 @@ uint8_t app_rtc_set_datetime(const app_rtc_datetime_t *datetime)
     return 1U;
 }
 
+/**
+ * @brief app_rtc_get_seconds_of_day：读取指定寄存器、缓冲区或模块状态，并把结果提供给调用方。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 uint32_t app_rtc_get_seconds_of_day(void)
 {
     app_rtc_datetime_t datetime;

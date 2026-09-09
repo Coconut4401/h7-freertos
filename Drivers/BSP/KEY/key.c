@@ -1,58 +1,58 @@
-
+/**
+ * @file key.c
+ * @brief åˆå§‹åŒ–æ¿è½½æŒ‰é”® GPIO å¹¶æä¾›å¸¦æ¶ˆæŠ–çš„æŒ‰é”®æ‰«æç»“æœã€‚
+ * @details è¿™æ˜¯ key æ¨¡å—çš„å®ç°æ–‡ä»¶ï¼ˆDrivers/BSP/KEY/key.cï¼‰ã€‚è°ƒç”¨æœ¬æ¨¡å—æ¥å£æ—¶ï¼Œåº”éµå®ˆ
+ *          ç›¸åº”å¤–è®¾åˆå§‹åŒ–é¡ºåºã€ç¼“å†²åŒºæœ‰æ•ˆæœŸå’Œ FreeRTOS ä»»åŠ¡ä¸Šä¸‹æ–‡çº¦æŸã€‚
+ * @note æ–‡ä»¶é‡‡ç”¨ UTF-8 ç¼–ç ï¼›ç¡¬ä»¶èµ„æºåˆ†é…ä»¥æ¿çº§åŸç†å›¾å’Œå·¥ç¨‹é…ç½®ä¸ºå‡†ã€‚
+ */
 
 #include "./BSP/KEY/key.h"
 #include "./SYSTEM/delay/delay.h"
 
-
 /**
- * @brief       °´¼ü³õÊ¼»¯º¯Êı
- * @param       ÎŞ
- * @retval      ÎŞ
+ * @brief key_initï¼šæŒ‰ä¾èµ–é¡ºåºé…ç½®ç¡¬ä»¶æˆ–æ¨¡å—çŠ¶æ€ï¼Œä¸ºåç»­è®¿é—®å»ºç«‹æœ‰æ•ˆè¿è¡Œç¯å¢ƒã€‚
+ * @details æ­¤å¤„ä¸ºæ¥å£å®ç°ï¼›æ‰§è¡Œé¡ºåºæ²¿ç”¨æ¨¡å—æ—¢æœ‰è®¾è®¡ã€‚æ¶‰åŠå…±äº«çŠ¶æ€æ—¶ï¼Œè°ƒç”¨æ–¹éœ€ä¿è¯
+ *          åˆå§‹åŒ–å·²ç»å®Œæˆï¼Œå¹¶é¿å…ä¸ä¸­æ–­æˆ–å…¶ä»–ä»»åŠ¡äº§ç”Ÿæœªå—æ§çš„å¹¶å‘è®¿é—®ã€‚
+ * @return æ— è¿”å›å€¼ã€‚
  */
 void key_init(void)
 {
-    KEY0_GPIO_CLK_ENABLE(); /* KEY0Ê±ÖÓÊ¹ÄÜ */
-    KEY1_GPIO_CLK_ENABLE(); /* KEY1Ê±ÖÓÊ¹ÄÜ */
-    KEY2_GPIO_CLK_ENABLE(); /* KEY2Ê±ÖÓÊ¹ÄÜ */
-    WKUP_GPIO_CLK_ENABLE(); /* WKUPÊ±ÖÓÊ¹ÄÜ */
+    KEY0_GPIO_CLK_ENABLE();
+    KEY1_GPIO_CLK_ENABLE();
+    KEY2_GPIO_CLK_ENABLE();
+    WKUP_GPIO_CLK_ENABLE();
 
     sys_gpio_set(KEY0_GPIO_PORT, KEY0_GPIO_PIN,
-                 SYS_GPIO_MODE_IN, SYS_GPIO_OTYPE_PP, SYS_GPIO_SPEED_MID, SYS_GPIO_PUPD_PU);    /* KEY0Òı½ÅÄ£Ê½ÉèÖÃ,ÉÏÀ­ÊäÈë */
+                 SYS_GPIO_MODE_IN, SYS_GPIO_OTYPE_PP, SYS_GPIO_SPEED_MID, SYS_GPIO_PUPD_PU);
 
     sys_gpio_set(KEY1_GPIO_PORT, KEY1_GPIO_PIN,
-                 SYS_GPIO_MODE_IN, SYS_GPIO_OTYPE_PP, SYS_GPIO_SPEED_MID, SYS_GPIO_PUPD_PU);    /* KEY1Òı½ÅÄ£Ê½ÉèÖÃ,ÉÏÀ­ÊäÈë */
+                 SYS_GPIO_MODE_IN, SYS_GPIO_OTYPE_PP, SYS_GPIO_SPEED_MID, SYS_GPIO_PUPD_PU);
 
     sys_gpio_set(KEY2_GPIO_PORT, KEY2_GPIO_PIN,
-             SYS_GPIO_MODE_IN, SYS_GPIO_OTYPE_PP, SYS_GPIO_SPEED_MID, SYS_GPIO_PUPD_PU);        /* KEY2Òı½ÅÄ£Ê½ÉèÖÃ,ÉÏÀ­ÊäÈë */
+             SYS_GPIO_MODE_IN, SYS_GPIO_OTYPE_PP, SYS_GPIO_SPEED_MID, SYS_GPIO_PUPD_PU);
 
     sys_gpio_set(WKUP_GPIO_PORT, WKUP_GPIO_PIN,
-                 SYS_GPIO_MODE_IN, SYS_GPIO_OTYPE_PP, SYS_GPIO_SPEED_MID, SYS_GPIO_PUPD_PD);    /* WKUPÒı½ÅÄ£Ê½ÉèÖÃ,ÏÂÀ­ÊäÈë */
+                 SYS_GPIO_MODE_IN, SYS_GPIO_OTYPE_PP, SYS_GPIO_SPEED_MID, SYS_GPIO_PUPD_PD);
 
 }
 
 /**
- * @brief       °´¼üÉ¨Ãèº¯Êı
- * @note        ¸Ãº¯ÊıÓĞÏìÓ¦ÓÅÏÈ¼¶(Í¬Ê±°´ÏÂ¶à¸ö°´¼ü): WK_UP > KEY2 > KEY1 > KEY0!!
- * @param       mode:0 / 1, ¾ßÌåº¬ÒåÈçÏÂ:
- *   @arg       0,  ²»Ö§³ÖÁ¬Ğø°´(µ±°´¼ü°´ÏÂ²»·ÅÊ±, Ö»ÓĞµÚÒ»´Îµ÷ÓÃ»á·µ»Ø¼üÖµ,
- *                  ±ØĞëËÉ¿ªÒÔºó, ÔÙ´Î°´ÏÂ²Å»á·µ»ØÆäËû¼üÖµ)
- *   @arg       1,  Ö§³ÖÁ¬Ğø°´(µ±°´¼ü°´ÏÂ²»·ÅÊ±, Ã¿´Îµ÷ÓÃ¸Ãº¯Êı¶¼»á·µ»Ø¼üÖµ)
- * @retval      ¼üÖµ, ¶¨ÒåÈçÏÂ:
- *              KEY0_PRES, 1, KEY0°´ÏÂ
- *              KEY1_PRES, 2, KEY1°´ÏÂ
- *              KEY2_PRES, 3, KEY2°´ÏÂ
- *              WKUP_PRES, 4, WKUP°´ÏÂ
+ * @brief key_scanï¼šæ‰«ææˆ–é‡‡æ ·å½“å‰è¾“å…¥ä¸è®¾å¤‡çŠ¶æ€ï¼Œæ•´ç†æœ¬è½®å¯ç”¨æ•°æ®ã€‚
+ * @details æ­¤å¤„ä¸ºæ¥å£å®ç°ï¼›æ‰§è¡Œé¡ºåºæ²¿ç”¨æ¨¡å—æ—¢æœ‰è®¾è®¡ã€‚æ¶‰åŠå…±äº«çŠ¶æ€æ—¶ï¼Œè°ƒç”¨æ–¹éœ€ä¿è¯
+ *          åˆå§‹åŒ–å·²ç»å®Œæˆï¼Œå¹¶é¿å…ä¸ä¸­æ–­æˆ–å…¶ä»–ä»»åŠ¡äº§ç”Ÿæœªå—æ§çš„å¹¶å‘è®¿é—®ã€‚
+ * @param mode è°ƒç”¨æ–¹æä¾›çš„è¾“å…¥æˆ–è¾“å‡ºå‚æ•°ï¼›å…¶å–å€¼èŒƒå›´å’Œç¼“å†²åŒºæœ‰æ•ˆæœŸé¡»ç¬¦åˆæ¥å£çº¦å®šã€‚
+ * @return è¿”å›å¤„ç†ç»“æœã€çŠ¶æ€ç æˆ–æŸ¥è¯¢å€¼ï¼›è°ƒç”¨æ–¹åº”æŒ‰æ¥å£è¯­ä¹‰åˆ¤æ–­æˆåŠŸä¸å¤±è´¥ã€‚
  */
 uint8_t key_scan(uint8_t mode)
 {
-    static uint8_t key_up = 1;  /* °´¼ü°´ËÉ¿ª±êÖ¾ */
+    static uint8_t key_up = 1;
     uint8_t keyval = 0;
 
-    if (mode) key_up = 1;       /* Ö§³ÖÁ¬°´ */
+    if (mode) key_up = 1;
 
-    if (key_up && (KEY0 == 0 || KEY1 == 0 || KEY2 == 0 || WK_UP == 1))  /* °´¼üËÉ¿ª±êÖ¾Îª1, ÇÒÓĞÈÎÒâÒ»¸ö°´¼ü°´ÏÂÁË */
+    if (key_up && (KEY0 == 0 || KEY1 == 0 || KEY2 == 0 || WK_UP == 1))
     {
-        delay_ms(10);           /* È¥¶¶¶¯ */
+        delay_ms(10);
         key_up = 0;
 
         if (KEY0 == 0)  keyval = KEY0_PRES;
@@ -63,30 +63,10 @@ uint8_t key_scan(uint8_t mode)
 
         if (WK_UP == 1) keyval = WKUP_PRES;
     }
-    else if (KEY0 == 1 && KEY1 == 1 && KEY2 == 1 && WK_UP == 0)         /* Ã»ÓĞÈÎºÎ°´¼ü°´ÏÂ, ±ê¼Ç°´¼üËÉ¿ª */
+    else if (KEY0 == 1 && KEY1 == 1 && KEY2 == 1 && WK_UP == 0)
     {
         key_up = 1;
     }
 
-    return keyval;              /* ·µ»Ø¼üÖµ */
+    return keyval;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

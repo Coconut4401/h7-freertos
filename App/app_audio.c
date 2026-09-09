@@ -1,3 +1,11 @@
+/**
+ * @file app_audio.c
+ * @brief 管理音频播放任务、缓冲区供给、播放状态和底层音频设备协作。
+ * @details 这是 app_audio 模块的实现文件（App/app_audio.c）。调用本模块接口时，应遵守
+ *          相应外设初始化顺序、缓冲区有效期和 FreeRTOS 任务上下文约束。
+ * @note 文件采用 UTF-8 编码；硬件资源分配以板级原理图和工程配置为准。
+ */
+
 #include "app_audio.h"
 
 #include <stddef.h>
@@ -10,6 +18,7 @@
 #include "app_health.h"
 #include "./SYSTEM/sys/sys.h"
 
+/** @name 编译期配置与硬件参数：集中定义本模块使用的常量和宏。 */
 #define AUDIO_COMMAND_QUEUE_LENGTH       6U
 #define AUDIO_DMA_SAMPLE_COUNT           65504U
 #define AUDIO_DMA_HALF_SAMPLES           (AUDIO_DMA_SAMPLE_COUNT / 2U)
@@ -34,7 +43,9 @@ static char g_audio_tracks[APP_STORAGE_AUDIO_MAX_TRACKS][APP_STORAGE_NAME_LENGTH
 static volatile uint8_t g_audio_volume = 50U;
 static uint8_t g_audio_file_open;
 static uint8_t g_audio_stop_after_half;
+static uint8_t g_audio_paused_restart_required;
 static app_audio_state_t g_audio_paused_state;
+static uint32_t g_audio_half_source_bytes[2];
 static uint32_t g_audio_test_frames_remaining;
 static uint32_t g_audio_test_phase;
 static TickType_t g_audio_last_progress_publish;
@@ -44,6 +55,13 @@ static int16_t g_audio_dma_buffer[AUDIO_DMA_SAMPLE_COUNT]
 static uint8_t g_audio_raw_buffer[AUDIO_RAW_BUFFER_SIZE]
     __attribute__((aligned(32)));
 
+/**
+ * @brief app_audio_clean_dma_half：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param half 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 static void app_audio_clean_dma_half(uint8_t half)
 {
     int16_t *address;
@@ -54,6 +72,15 @@ static void app_audio_clean_dma_half(uint8_t half)
     __DSB();
 }
 
+/**
+ * @brief app_audio_copy_text：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param destination 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param destination_size 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param source 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 static void app_audio_copy_text(char *destination,
                                 uint32_t destination_size,
                                 const char *source)
@@ -76,6 +103,13 @@ static void app_audio_copy_text(char *destination,
     destination[index] = '\0';
 }
 
+/**
+ * @brief app_audio_publish：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param status 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 static void app_audio_publish(const char *status)
 {
     if (status != NULL)
@@ -84,12 +118,23 @@ static void app_audio_publish(const char *status)
                             sizeof(g_audio_work.status), status);
     }
     g_audio_work.volume_percent = g_audio_volume;
+    g_audio_work.seek_available =
+        (g_audio_file_open &&
+         (g_audio_work.state == APP_AUDIO_STATE_PLAYING ||
+          (g_audio_work.state == APP_AUDIO_STATE_PAUSED &&
+           g_audio_paused_state == APP_AUDIO_STATE_PLAYING))) ? 1U : 0U;
     taskENTER_CRITICAL();
     g_audio_work.revision = g_audio_public.revision + 1U;
     g_audio_public = g_audio_work;
     taskEXIT_CRITICAL();
 }
 
+/**
+ * @brief app_audio_gpio_init：按依赖顺序配置硬件或模块状态，为后续访问建立有效运行环境。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
+ */
 static void app_audio_gpio_init(void)
 {
     RCC->AHB4ENR |= RCC_AHB4ENR_GPIOBEN;
@@ -100,6 +145,12 @@ static void app_audio_gpio_init(void)
                  SYS_GPIO_SPEED_HIGH, SYS_GPIO_PUPD_NONE);
 }
 
+/**
+ * @brief app_audio_peripheral_init：按依赖顺序配置硬件或模块状态，为后续访问建立有效运行环境。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
+ */
 static void app_audio_peripheral_init(void)
 {
     app_audio_gpio_init();
@@ -121,18 +172,35 @@ static void app_audio_peripheral_init(void)
     NVIC_EnableIRQ(DMA1_Stream0_IRQn);
 }
 
+/**
+ * @brief app_audio_hardware_stop：停止或禁用函数名所描述的硬件功能与业务流程。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
+ */
 static void app_audio_hardware_stop(void)
 {
+    uint32_t timeout;
+
     SPI2->CFG1 &= ~SPI_CFG1_TXDMAEN;
     SPI2->CR1 &= ~SPI_CR1_SPE;
     DMA1_Stream0->CR &= ~DMA_SxCR_EN;
-    while ((DMA1_Stream0->CR & DMA_SxCR_EN) != 0U)
+    timeout = 100000U;
+    while ((DMA1_Stream0->CR & DMA_SxCR_EN) != 0U && timeout > 0U)
     {
+        timeout--;
     }
     DMA1->LIFCR = AUDIO_DMA_ALL_FLAGS;
     SPI2->IFCR = 0x0FF8U;
 }
 
+/**
+ * @brief app_audio_hardware_configure：按依赖顺序配置硬件或模块状态，为后续访问建立有效运行环境。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param sample_rate 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static uint8_t app_audio_hardware_configure(uint32_t sample_rate)
 {
     uint32_t divider;
@@ -161,11 +229,21 @@ static uint8_t app_audio_hardware_configure(uint32_t sample_rate)
     return 1U;
 }
 
+/**
+ * @brief app_audio_hardware_start：启动或启用函数名所描述的硬件功能与业务流程。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
+ */
 static void app_audio_hardware_start(void)
 {
+    uint32_t timeout;
+
     DMA1_Stream0->CR &= ~DMA_SxCR_EN;
-    while ((DMA1_Stream0->CR & DMA_SxCR_EN) != 0U)
+    timeout = 100000U;
+    while ((DMA1_Stream0->CR & DMA_SxCR_EN) != 0U && timeout > 0U)
     {
+        timeout--;
     }
     DMA1->LIFCR = AUDIO_DMA_ALL_FLAGS;
     DMAMUX1_Channel0->CCR = 40U;
@@ -187,6 +265,12 @@ static void app_audio_hardware_start(void)
     SPI2->CR1 |= SPI_CR1_CSTART;
 }
 
+/**
+ * @brief app_audio_hardware_pause：停止或禁用函数名所描述的硬件功能与业务流程。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
+ */
 static void app_audio_hardware_pause(void)
 {
     uint32_t timeout;
@@ -200,12 +284,26 @@ static void app_audio_hardware_pause(void)
     SPI2->CR1 &= ~SPI_CR1_SPE;
 }
 
+/**
+ * @brief app_audio_hardware_resume：启动或启用函数名所描述的硬件功能与业务流程。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
+ */
 static void app_audio_hardware_resume(void)
 {
     SPI2->CR1 |= SPI_CR1_SPE;
     SPI2->CR1 |= SPI_CR1_CSTART;
 }
 
+/**
+ * @brief app_audio_storage_transaction：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param request 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param response 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static BaseType_t app_audio_storage_transaction(
     const app_storage_request_t *request,
     app_storage_audio_response_t *response)
@@ -235,6 +333,12 @@ static BaseType_t app_audio_storage_transaction(
     return pdFAIL;
 }
 
+/**
+ * @brief app_audio_close_file：停止或禁用函数名所描述的硬件功能与业务流程。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
+ */
 static void app_audio_close_file(void)
 {
     app_storage_request_t request;
@@ -250,11 +354,21 @@ static void app_audio_close_file(void)
     g_audio_file_open = 0U;
 }
 
+/**
+ * @brief app_audio_stop：停止或禁用函数名所描述的硬件功能与业务流程。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param status 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 static void app_audio_stop(const char *status)
 {
     app_audio_hardware_stop();
     app_audio_close_file();
     g_audio_stop_after_half = 0U;
+    g_audio_paused_restart_required = 0U;
+    g_audio_paused_state = APP_AUDIO_STATE_STOPPED;
+    memset(g_audio_half_source_bytes, 0, sizeof(g_audio_half_source_bytes));
     g_audio_test_frames_remaining = 0U;
     if (g_audio_work.track_count > 0U)
     {
@@ -271,6 +385,12 @@ static void app_audio_stop(const char *status)
     app_audio_publish(status);
 }
 
+/**
+ * @brief app_audio_scan：扫描或采样当前输入与设备状态，整理本轮可用数据。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
+ */
 static void app_audio_scan(void)
 {
     app_storage_request_t request;
@@ -325,6 +445,13 @@ static void app_audio_scan(void)
     }
 }
 
+/**
+ * @brief app_audio_fill_file_half：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param half 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static int8_t app_audio_fill_file_half(uint8_t half)
 {
     app_storage_request_t request;
@@ -336,6 +463,7 @@ static int8_t app_audio_fill_file_half(uint8_t half)
     int32_t sample;
 
     destination = &g_audio_dma_buffer[(uint32_t)half * AUDIO_DMA_HALF_SAMPLES];
+    g_audio_half_source_bytes[half] = 0U;
     memset(destination, 0, AUDIO_DMA_HALF_SAMPLES * sizeof(int16_t));
     memset(&request, 0, sizeof(request));
     request.operation = APP_STORAGE_OP_AUDIO_READ;
@@ -375,11 +503,18 @@ static int8_t app_audio_fill_file_half(uint8_t half)
             destination[index] = (int16_t)sample;
         }
     }
-    g_audio_work.data_loaded += response.data_length;
+    g_audio_half_source_bytes[half] = response.data_length;
     app_audio_clean_dma_half(half);
     return response.end_of_file ? 1 : 0;
 }
 
+/**
+ * @brief app_audio_fill_test_half：执行设备探测或自检，并将检测结果返回或记录给上层模块。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param half 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static uint8_t app_audio_fill_test_half(uint8_t half)
 {
     int16_t *destination;
@@ -389,6 +524,7 @@ static uint8_t app_audio_fill_test_half(uint8_t half)
     int32_t sample;
 
     destination = &g_audio_dma_buffer[(uint32_t)half * AUDIO_DMA_HALF_SAMPLES];
+    g_audio_half_source_bytes[half] = 0U;
     memset(destination, 0, AUDIO_DMA_HALF_SAMPLES * sizeof(int16_t));
     frames = AUDIO_DMA_HALF_SAMPLES / 2U;
     if (frames > g_audio_test_frames_remaining)
@@ -406,11 +542,17 @@ static uint8_t app_audio_fill_test_half(uint8_t half)
         destination[frame * 2U + 1U] = (int16_t)sample;
     }
     g_audio_test_frames_remaining -= frames;
-    g_audio_work.data_loaded += frames * 4U;
+    g_audio_half_source_bytes[half] = frames * 4U;
     app_audio_clean_dma_half(half);
     return (g_audio_test_frames_remaining == 0U) ? 1U : 0U;
 }
 
+/**
+ * @brief app_audio_start_file：启动或启用函数名所描述的硬件功能与业务流程。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
+ */
 static void app_audio_start_file(void)
 {
     app_storage_request_t request;
@@ -454,6 +596,9 @@ static void app_audio_start_file(void)
     }
 
     g_audio_stop_after_half = 0U;
+    g_audio_paused_restart_required = 0U;
+    g_audio_paused_state = APP_AUDIO_STATE_STOPPED;
+    memset(g_audio_half_source_bytes, 0, sizeof(g_audio_half_source_bytes));
     end_of_file = app_audio_fill_file_half(0U);
     if (end_of_file < 0)
     {
@@ -487,6 +632,12 @@ static void app_audio_start_file(void)
     app_audio_hardware_start();
 }
 
+/**
+ * @brief app_audio_start_test：执行设备探测或自检，并将检测结果返回或记录给上层模块。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
+ */
 static void app_audio_start_test(void)
 {
     app_audio_hardware_stop();
@@ -494,6 +645,9 @@ static void app_audio_start_test(void)
     g_audio_test_frames_remaining = AUDIO_TEST_RATE * AUDIO_TEST_SECONDS;
     g_audio_test_phase = 0U;
     g_audio_stop_after_half = 0U;
+    g_audio_paused_restart_required = 0U;
+    g_audio_paused_state = APP_AUDIO_STATE_STOPPED;
+    memset(g_audio_half_source_bytes, 0, sizeof(g_audio_half_source_bytes));
     g_audio_work.channels = 2U;
     g_audio_work.bits_per_sample = 16U;
     g_audio_work.sample_rate = AUDIO_TEST_RATE;
@@ -522,12 +676,30 @@ static void app_audio_start_test(void)
     app_audio_hardware_start();
 }
 
+/**
+ * @brief app_audio_service_half：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param half 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 static void app_audio_service_half(uint8_t half)
 {
     int8_t end_of_file;
     uint8_t half_mask;
 
     half_mask = (uint8_t)(1U << half);
+    if (g_audio_work.data_loaded <= g_audio_work.data_size -
+        ((g_audio_half_source_bytes[half] <= g_audio_work.data_size) ?
+         g_audio_half_source_bytes[half] : g_audio_work.data_size))
+    {
+        g_audio_work.data_loaded += g_audio_half_source_bytes[half];
+    }
+    else
+    {
+        g_audio_work.data_loaded = g_audio_work.data_size;
+    }
+    g_audio_half_source_bytes[half] = 0U;
     if ((g_audio_stop_after_half & half_mask) != 0U)
     {
         app_audio_stop("PLAYBACK COMPLETE");
@@ -556,6 +728,131 @@ static void app_audio_service_half(uint8_t half)
     }
 }
 
+/** Reposition a normal WAV stream at a frame boundary and rebuild DMA data. */
+static void app_audio_seek(int8_t direction)
+{
+    app_storage_request_t request;
+    app_storage_audio_response_t response;
+    uint32_t bytes_per_second;
+    uint32_t delta;
+    uint32_t target;
+    uint32_t discarded_notifications;
+    uint16_t block_align;
+    uint8_t was_paused;
+    int8_t end_of_file;
+
+    if (!g_audio_file_open ||
+        (g_audio_work.state != APP_AUDIO_STATE_PLAYING &&
+         !(g_audio_work.state == APP_AUDIO_STATE_PAUSED &&
+           g_audio_paused_state == APP_AUDIO_STATE_PLAYING)))
+    {
+        app_audio_publish("SEEK IS AVAILABLE FOR WAV PLAYBACK ONLY");
+        return;
+    }
+
+    block_align = (uint16_t)(g_audio_work.channels * 2U);
+    if (block_align == 0U || g_audio_work.sample_rate == 0U ||
+        g_audio_work.data_size < block_align)
+    {
+        app_audio_stop("INVALID WAV SEEK BOUNDARY");
+        return;
+    }
+    was_paused = (g_audio_work.state == APP_AUDIO_STATE_PAUSED) ? 1U : 0U;
+    bytes_per_second = g_audio_work.sample_rate * (uint32_t)block_align;
+    delta = bytes_per_second * 5U;
+    target = g_audio_work.data_loaded;
+    if (direction < 0)
+    {
+        target = (target > delta) ? target - delta : 0U;
+    }
+    else if ((uint64_t)target + delta >= g_audio_work.data_size)
+    {
+        target = g_audio_work.data_size;
+    }
+    else
+    {
+        target += delta;
+    }
+    target -= target % block_align;
+
+    app_audio_hardware_stop();
+    discarded_notifications = 0U;
+    (void)xTaskNotifyWait(0U, 0xFFFFFFFFU, &discarded_notifications, 0U);
+    memset(&request, 0, sizeof(request));
+    request.operation = APP_STORAGE_OP_AUDIO_SEEK;
+    request.data_offset = target;
+    if (app_audio_storage_transaction(&request, &response) != pdPASS ||
+        response.result != APP_STORAGE_RESULT_OK)
+    {
+        app_audio_close_file();
+        g_audio_work.state = APP_AUDIO_STATE_ERROR;
+        g_audio_paused_restart_required = 0U;
+        app_audio_publish("WAV SEEK FAILED");
+        app_logs_add(APP_LOG_LEVEL_ERROR, "AUDIO", "WAV SEEK FAILED");
+        return;
+    }
+
+    g_audio_work.data_loaded = response.data_offset;
+    if (response.end_of_file)
+    {
+        app_audio_stop("END OF TRACK");
+        return;
+    }
+    g_audio_stop_after_half = 0U;
+    memset(g_audio_half_source_bytes, 0, sizeof(g_audio_half_source_bytes));
+    end_of_file = app_audio_fill_file_half(0U);
+    if (end_of_file < 0)
+    {
+        app_audio_stop("SD READ FAILED AFTER SEEK");
+        return;
+    }
+    if (end_of_file > 0)
+    {
+        memset(&g_audio_dma_buffer[AUDIO_DMA_HALF_SAMPLES], 0,
+               AUDIO_DMA_HALF_SAMPLES * sizeof(int16_t));
+        app_audio_clean_dma_half(1U);
+        g_audio_stop_after_half = 1U;
+    }
+    else
+    {
+        end_of_file = app_audio_fill_file_half(1U);
+        if (end_of_file < 0)
+        {
+            app_audio_stop("SD READ FAILED AFTER SEEK");
+            return;
+        }
+        if (end_of_file > 0)
+        {
+            g_audio_stop_after_half = 2U;
+        }
+    }
+
+    g_audio_paused_state = APP_AUDIO_STATE_PLAYING;
+    if (was_paused)
+    {
+        g_audio_work.state = APP_AUDIO_STATE_PAUSED;
+        g_audio_paused_restart_required = 1U;
+        app_audio_publish(direction < 0 ? "MOVED BACK 5 SECONDS - PAUSED" :
+                          "MOVED FORWARD 5 SECONDS - PAUSED");
+    }
+    else
+    {
+        g_audio_work.state = APP_AUDIO_STATE_PLAYING;
+        g_audio_paused_restart_required = 0U;
+        app_audio_hardware_start();
+        app_audio_publish(direction < 0 ? "MOVED BACK 5 SECONDS" :
+                          "MOVED FORWARD 5 SECONDS");
+    }
+    g_audio_last_progress_publish = xTaskGetTickCount();
+}
+
+/**
+ * @brief app_audio_select：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param direction 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 static void app_audio_select(int8_t direction)
 {
     uint8_t restart;
@@ -590,6 +887,13 @@ static void app_audio_select(int8_t direction)
     }
 }
 
+/**
+ * @brief app_audio_process_command：解析并处理当前事件或数据，根据结果推进模块状态。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param command 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 static void app_audio_process_command(app_audio_command_t command)
 {
     if (command == APP_AUDIO_COMMAND_RESCAN)
@@ -612,6 +916,14 @@ static void app_audio_process_command(app_audio_command_t command)
     {
         app_audio_start_test();
     }
+    else if (command == APP_AUDIO_COMMAND_SEEK_BACK_5S)
+    {
+        app_audio_seek(-1);
+    }
+    else if (command == APP_AUDIO_COMMAND_SEEK_FORWARD_5S)
+    {
+        app_audio_seek(1);
+    }
     else if (command == APP_AUDIO_COMMAND_PLAY_PAUSE)
     {
         if (g_audio_work.state == APP_AUDIO_STATE_PLAYING ||
@@ -624,7 +936,15 @@ static void app_audio_process_command(app_audio_command_t command)
         }
         else if (g_audio_work.state == APP_AUDIO_STATE_PAUSED)
         {
-            app_audio_hardware_resume();
+            if (g_audio_paused_restart_required)
+            {
+                app_audio_hardware_start();
+                g_audio_paused_restart_required = 0U;
+            }
+            else
+            {
+                app_audio_hardware_resume();
+            }
             g_audio_work.state = g_audio_paused_state;
             app_audio_publish(g_audio_paused_state == APP_AUDIO_STATE_TEST_TONE ?
                               "TEST TONE RESUMED" : "PLAYBACK RESUMED");
@@ -636,6 +956,12 @@ static void app_audio_process_command(app_audio_command_t command)
     }
 }
 
+/**
+ * @brief app_audio_init：按依赖顺序配置硬件或模块状态，为后续访问建立有效运行环境。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 BaseType_t app_audio_init(void)
 {
     memset(&g_audio_public, 0, sizeof(g_audio_public));
@@ -656,6 +982,13 @@ BaseType_t app_audio_init(void)
     return pdPASS;
 }
 
+/**
+ * @brief app_audio_submit：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param command 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 BaseType_t app_audio_submit(app_audio_command_t command)
 {
     if (g_audio_command_queue == NULL)
@@ -665,6 +998,13 @@ BaseType_t app_audio_submit(app_audio_command_t command)
     return xQueueSend(g_audio_command_queue, &command, 0U);
 }
 
+/**
+ * @brief app_audio_set_volume：把调用方数据写入目标寄存器、缓冲区或模块状态。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param volume_percent 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 void app_audio_set_volume(uint8_t volume_percent)
 {
     if (volume_percent > 100U)
@@ -678,11 +1018,24 @@ void app_audio_set_volume(uint8_t volume_percent)
     taskEXIT_CRITICAL();
 }
 
+/**
+ * @brief app_audio_get_volume：读取指定寄存器、缓冲区或模块状态，并把结果提供给调用方。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 uint8_t app_audio_get_volume(void)
 {
     return g_audio_volume;
 }
 
+/**
+ * @brief app_audio_get_snapshot：读取指定寄存器、缓冲区或模块状态，并把结果提供给调用方。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param snapshot 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 void app_audio_get_snapshot(app_audio_snapshot_t *snapshot)
 {
     if (snapshot == NULL)
@@ -694,6 +1047,14 @@ void app_audio_get_snapshot(app_audio_snapshot_t *snapshot)
     taskEXIT_CRITICAL();
 }
 
+/**
+ * @brief AppAudioTask：作为 FreeRTOS 任务入口，循环处理事件、周期工作和运行状态。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param argument 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ * @warning 该入口具有特定中断或任务上下文，禁止执行不符合该上下文约束的操作。
+ */
 void AppAudioTask(void *argument)
 {
     app_audio_command_t command;
@@ -747,6 +1108,13 @@ void AppAudioTask(void *argument)
     }
 }
 
+/**
+ * @brief DMA1_Stream0_IRQHandler：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
+ * @warning 该入口具有特定中断或任务上下文，禁止执行不符合该上下文约束的操作。
+ */
 void DMA1_Stream0_IRQHandler(void)
 {
     uint32_t flags;

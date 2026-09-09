@@ -1,3 +1,11 @@
+/**
+ * @file app_logs.c
+ * @brief 维护运行日志缓冲区并向日志界面提供筛选和显示数据。
+ * @details 这是 app_logs 模块的实现文件（App/app_logs.c）。调用本模块接口时，应遵守
+ *          相应外设初始化顺序、缓冲区有效期和 FreeRTOS 任务上下文约束。
+ * @note 文件采用 UTF-8 编码；硬件资源分配以板级原理图和工程配置为准。
+ */
+
 #include "app_logs.h"
 
 #include <stddef.h>
@@ -9,9 +17,11 @@
 #include "app_ui.h"
 #include "task.h"
 
+/** @name 编译期配置与硬件参数：集中定义本模块使用的常量和宏。 */
 #define APP_LOG_EXPORT_FILE_NAME  "SYSTEM.LOG"
 #define APP_LOG_EXPORT_SIZE       6144U
 
+/** @brief 模块数据类型：描述本模块维护的状态、配置或数据快照。 */
 typedef struct
 {
     uint8_t initialized;
@@ -37,6 +47,15 @@ typedef struct
 static app_log_repository_t g_log_repository;
 static app_logs_view_t g_logs_view;
 
+/**
+ * @brief app_logs_copy_text：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param destination 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param destination_size 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param source 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 static void app_logs_copy_text(char *destination,
                                uint32_t destination_size,
                                const char *source)
@@ -59,12 +78,25 @@ static void app_logs_copy_text(char *destination,
     destination[index] = '\0';
 }
 
+/**
+ * @brief app_logs_set_status：把调用方数据写入目标寄存器、缓冲区或模块状态。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param status 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 static void app_logs_set_status(const char *status)
 {
     app_logs_copy_text(g_logs_view.status,
                        sizeof(g_logs_view.status), status);
 }
 
+/**
+ * @brief app_logs_init：按依赖顺序配置硬件或模块状态，为后续访问建立有效运行环境。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
+ */
 void app_logs_init(void)
 {
     taskENTER_CRITICAL();
@@ -77,6 +109,15 @@ void app_logs_init(void)
     taskEXIT_CRITICAL();
 }
 
+/**
+ * @brief app_logs_add：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param level 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param module 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param message 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 void app_logs_add(app_log_level_t level,
                   const char *module,
                   const char *message)
@@ -102,6 +143,13 @@ void app_logs_add(app_log_level_t level,
     taskEXIT_CRITICAL();
 }
 
+/**
+ * @brief app_logs_take_snapshot：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param reset_page 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 static void app_logs_take_snapshot(uint8_t reset_page)
 {
     uint8_t index;
@@ -133,6 +181,12 @@ static void app_logs_take_snapshot(uint8_t reset_page)
     }
 }
 
+/**
+ * @brief app_logs_redraw：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
+ */
 static void app_logs_redraw(void)
 {
     if (!g_logs_view.active)
@@ -147,6 +201,13 @@ static void app_logs_redraw(void)
                      g_logs_view.clear_armed);
 }
 
+/**
+ * @brief app_logs_level_text：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param level 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static const char *app_logs_level_text(app_log_level_t level)
 {
     if (level == APP_LOG_LEVEL_ERROR)
@@ -160,6 +221,14 @@ static const char *app_logs_level_text(app_log_level_t level)
     return "INFO";
 }
 
+/**
+ * @brief app_logs_format_time：将输入值转换为调用方所需的数据格式或表示形式。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param seconds 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param text 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 static void app_logs_format_time(uint32_t seconds, char text[9])
 {
     uint32_t hours;
@@ -180,6 +249,12 @@ static void app_logs_format_time(uint32_t seconds, char text[9])
     text[8] = '\0';
 }
 
+/**
+ * @brief app_logs_build_export：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static uint32_t app_logs_build_export(void)
 {
     uint32_t used;
@@ -220,6 +295,12 @@ static uint32_t app_logs_build_export(void)
     return used;
 }
 
+/**
+ * @brief app_logs_export：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
+ */
 static void app_logs_export(void)
 {
     app_storage_request_t request;
@@ -253,6 +334,12 @@ static void app_logs_export(void)
     app_logs_redraw();
 }
 
+/**
+ * @brief app_logs_clear：清除已有状态或复位目标设备，使其回到约定的初始状态。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
+ */
 static void app_logs_clear(void)
 {
     taskENTER_CRITICAL();
@@ -267,6 +354,12 @@ static void app_logs_clear(void)
     app_logs_redraw();
 }
 
+/**
+ * @brief app_logs_open：启动或启用函数名所描述的硬件功能与业务流程。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
+ */
 void app_logs_open(void)
 {
     app_logs_init();
@@ -277,12 +370,25 @@ void app_logs_open(void)
     app_logs_redraw();
 }
 
+/**
+ * @brief app_logs_close：停止或禁用函数名所描述的硬件功能与业务流程。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
+ */
 void app_logs_close(void)
 {
     g_logs_view.active = 0U;
     g_logs_view.clear_armed = 0U;
 }
 
+/**
+ * @brief app_logs_handle_event：解析并处理当前事件或数据，根据结果推进模块状态。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param event 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 void app_logs_handle_event(const app_input_event_t *event)
 {
     app_ui_logs_action_t action;
@@ -356,6 +462,12 @@ void app_logs_handle_event(const app_input_event_t *event)
     }
 }
 
+/**
+ * @brief app_logs_update：使用最新数据更新缓存、硬件输出或界面显示状态。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
+ */
 void app_logs_update(void)
 {
     app_storage_binary_response_t response;

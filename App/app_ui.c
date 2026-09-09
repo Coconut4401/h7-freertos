@@ -1,3 +1,11 @@
+/**
+ * @file app_ui.c
+ * @brief 提供各应用共用的 LCD 绘制、窗口布局和界面更新接口。
+ * @details 这是 app_ui 模块的实现文件（App/app_ui.c）。调用本模块接口时，应遵守
+ *          相应外设初始化顺序、缓冲区有效期和 FreeRTOS 任务上下文约束。
+ * @note 文件采用 UTF-8 编码；硬件资源分配以板级原理图和工程配置为准。
+ */
+
 #include "app_ui.h"
 
 #include <string.h>
@@ -5,6 +13,7 @@
 #include "./BSP/LCD/lcd.h"
 #include "app_input.h"
 
+/** @name 编译期配置与硬件参数：集中定义本模块使用的常量和宏。 */
 #define UI_WIDTH              800U
 #define UI_HEIGHT             480U
 #define UI_TOP_HEIGHT         48U
@@ -25,6 +34,13 @@
 #define KEY_HEIGHT            56U
 #define KEY_GAP_X             12U
 #define KEY_GAP_Y             10U
+
+#define TEXT_KEYBOARD_X       24U
+#define TEXT_KEYBOARD_Y       214U
+#define TEXT_KEYBOARD_WIDTH   72U
+#define TEXT_KEYBOARD_HEIGHT  38U
+#define TEXT_KEYBOARD_GAP_X   5U
+#define TEXT_KEYBOARD_GAP_Y   5U
 
 #define CURSOR_BASE_WIDTH     6U
 #define CURSOR_BASE_HEIGHT    8U
@@ -52,6 +68,7 @@
 #define LOG_BUTTON_WIDTH      150U
 #define LOG_BUTTON_HEIGHT     42U
 
+/** @brief 模块数据类型：描述本模块维护的状态、配置或数据快照。 */
 typedef struct
 {
     uint16_t x;
@@ -61,6 +78,10 @@ typedef struct
     const char *label;
 } desktop_icon_t;
 
+static void app_ui_draw_file_button(uint16_t x, uint16_t y,
+                                    uint16_t width, const char *label,
+                                    uint8_t enabled);
+
 static const char *const g_key_labels[4][3] =
 {
     {"1", "2", "3"},
@@ -68,6 +89,77 @@ static const char *const g_key_labels[4][3] =
     {"7", "8", "9"},
     {"CLR", "0", "OK"}
 };
+
+static const char g_keyboard_lower[3][11] =
+{
+    "qwertyuiop", "asdfghjkl;", "zxcvbnm,./"
+};
+static const char g_keyboard_number[3][11] =
+{
+    "1234567890", "-_=+@#$%&*", ".,:;!?()[]"
+};
+
+app_ui_keyboard_hit_t app_ui_keyboard_hit_test(app_ui_keyboard_mode_t mode,
+                                               uint16_t x,
+                                               uint16_t y)
+{
+    app_ui_keyboard_hit_t hit = {APP_UI_KEYBOARD_ACTION_NONE, '\0'};
+    const char (*labels)[11];
+    uint16_t stride_x = (uint16_t)(TEXT_KEYBOARD_WIDTH + TEXT_KEYBOARD_GAP_X);
+    uint16_t stride_y = (uint16_t)(TEXT_KEYBOARD_HEIGHT + TEXT_KEYBOARD_GAP_Y);
+    uint16_t local_x;
+    uint16_t local_y;
+    uint8_t row;
+    uint8_t column;
+
+    if (mode != APP_UI_KEYBOARD_MODE_UPPER &&
+        mode != APP_UI_KEYBOARD_MODE_NUMBER)
+    {
+        mode = APP_UI_KEYBOARD_MODE_LOWER;
+    }
+    labels = (mode == APP_UI_KEYBOARD_MODE_NUMBER) ?
+             g_keyboard_number : g_keyboard_lower;
+
+    /* Three ten-key rows.  Reject gaps explicitly so adjacent keys do not
+     * become accidentally active when a touch lands between them. */
+    if (x >= TEXT_KEYBOARD_X && y >= TEXT_KEYBOARD_Y &&
+        x < TEXT_KEYBOARD_X + 10U * stride_x - TEXT_KEYBOARD_GAP_X &&
+        y < TEXT_KEYBOARD_Y + 3U * stride_y - TEXT_KEYBOARD_GAP_Y)
+    {
+        local_x = (uint16_t)(x - TEXT_KEYBOARD_X);
+        local_y = (uint16_t)(y - TEXT_KEYBOARD_Y);
+        column = (uint8_t)(local_x / stride_x);
+        row = (uint8_t)(local_y / stride_y);
+        if ((local_x % stride_x) < TEXT_KEYBOARD_WIDTH &&
+            (local_y % stride_y) < TEXT_KEYBOARD_HEIGHT)
+        {
+            hit.action = APP_UI_KEYBOARD_ACTION_CHAR;
+            hit.character = labels[row][column];
+            if (mode == APP_UI_KEYBOARD_MODE_UPPER &&
+                hit.character >= 'a' && hit.character <= 'z')
+            {
+                hit.character = (char)(hit.character - ('a' - 'A'));
+            }
+            return hit;
+        }
+    }
+
+    /* Bottom command rows: five editing controls, followed by confirmation. */
+    if (y >= 343U && y < 381U)
+    {
+        if (x >= 24U && x < 164U) hit.action = APP_UI_KEYBOARD_ACTION_SHIFT;
+        else if (x >= 169U && x < 309U) hit.action = APP_UI_KEYBOARD_ACTION_NUMBER;
+        else if (x >= 314U && x < 454U) hit.action = APP_UI_KEYBOARD_ACTION_SPACE;
+        else if (x >= 459U && x < 599U) hit.action = APP_UI_KEYBOARD_ACTION_BACKSPACE;
+        else if (x >= 604U && x < 744U) hit.action = APP_UI_KEYBOARD_ACTION_ENTER;
+    }
+    else if (y >= 391U && y < 429U)
+    {
+        if (x >= 214U && x < 394U) hit.action = APP_UI_KEYBOARD_ACTION_OK;
+        else if (x >= 409U && x < 589U) hit.action = APP_UI_KEYBOARD_ACTION_CANCEL;
+    }
+    return hit;
+}
 
 static const desktop_icon_t g_desktop_icons[6] =
 {
@@ -98,6 +190,14 @@ static uint8_t g_cursor_visible;
 static uint8_t g_cursor_size = APP_UI_CURSOR_SIZE_MEDIUM;
 static int8_t g_selected_icon = -1;
 
+/**
+ * @brief app_ui_text_width：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param text 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param font_size 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static uint16_t app_ui_text_width(const char *text, uint8_t font_size)
 {
     uint16_t length;
@@ -111,6 +211,19 @@ static uint16_t app_ui_text_width(const char *text, uint8_t font_size)
     return (uint16_t)(length * (font_size / 2U));
 }
 
+/**
+ * @brief app_ui_show_text：根据输入参数和当前状态绘制或更新对应显示内容。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param x 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param y 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param width 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param height 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param font_size 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param text 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param color 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 static void app_ui_show_text(uint16_t x,
                              uint16_t y,
                              uint16_t width,
@@ -145,6 +258,18 @@ static void app_ui_show_text(uint16_t x,
     }
 }
 
+/**
+ * @brief app_ui_show_number：根据输入参数和当前状态绘制或更新对应显示内容。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param x 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param y 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param number 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param digits 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param font_size 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param color 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 static void app_ui_show_number(uint16_t x,
                                uint16_t y,
                                uint32_t number,
@@ -171,6 +296,17 @@ static void app_ui_show_number(uint16_t x,
                      font_size, font_size, text, color);
 }
 
+/**
+ * @brief app_ui_show_u32：根据输入参数和当前状态绘制或更新对应显示内容。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param x 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param y 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param number 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param font_size 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param color 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 static void app_ui_show_u32(uint16_t x,
                             uint16_t y,
                             uint32_t number,
@@ -193,6 +329,18 @@ static void app_ui_show_u32(uint16_t x,
                      font_size, font_size, &text[start], color);
 }
 
+/**
+ * @brief app_ui_show_centered：根据输入参数和当前状态绘制或更新对应显示内容。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param x 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param y 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param width 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param font_size 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param text 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param color 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 static void app_ui_show_centered(uint16_t x,
                                  uint16_t y,
                                  uint16_t width,
@@ -208,6 +356,12 @@ static void app_ui_show_centered(uint16_t x,
     app_ui_show_text(text_x, y, width, font_size, font_size, text, color);
 }
 
+/**
+ * @brief app_ui_cursor_hide：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
+ */
 static void app_ui_cursor_hide(void)
 {
     uint16_t row;
@@ -235,6 +389,14 @@ static void app_ui_cursor_hide(void)
     g_cursor_visible = 0U;
 }
 
+/**
+ * @brief app_ui_cursor_show：根据输入参数和当前状态绘制或更新对应显示内容。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param x 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param y 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 static void app_ui_cursor_show(uint16_t x, uint16_t y)
 {
     uint16_t row;
@@ -286,6 +448,14 @@ static void app_ui_cursor_show(uint16_t x, uint16_t y)
     g_cursor_visible = 1U;
 }
 
+/**
+ * @brief app_ui_draw_key：根据输入参数和当前状态绘制或更新对应显示内容。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param row 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param column 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 static void app_ui_draw_key(uint8_t row, uint8_t column)
 {
     uint16_t x;
@@ -301,6 +471,14 @@ static void app_ui_draw_key(uint8_t row, uint8_t column)
                          g_key_labels[row][column], WHITE);
 }
 
+/**
+ * @brief app_ui_draw_icon：根据输入参数和当前状态绘制或更新对应显示内容。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param index 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param selected 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 static void app_ui_draw_icon(uint8_t index, uint8_t selected)
 {
     const desktop_icon_t *icon;
@@ -324,6 +502,14 @@ static void app_ui_draw_icon(uint8_t index, uint8_t selected)
                          icon->width, 16U, icon->label, WHITE);
 }
 
+/**
+ * @brief app_ui_format_time：将输入值转换为调用方所需的数据格式或表示形式。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param seconds 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param time_text 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 static void app_ui_format_time(uint32_t seconds, char time_text[9])
 {
     uint32_t hours;
@@ -345,6 +531,13 @@ static void app_ui_format_time(uint32_t seconds, char time_text[9])
     time_text[8] = '\0';
 }
 
+/**
+ * @brief app_ui_draw_application_header：根据输入参数和当前状态绘制或更新对应显示内容。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param title 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 static void app_ui_draw_application_header(const char *title)
 {
     g_cursor_visible = 0U;
@@ -363,6 +556,15 @@ static void app_ui_draw_application_header(const char *title)
                      "BACK returns to the desktop", WHITE);
 }
 
+/**
+ * @brief app_ui_draw_metric_panel：根据输入参数和当前状态绘制或更新对应显示内容。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param x 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param y 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param label 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 static void app_ui_draw_metric_panel(uint16_t x,
                                      uint16_t y,
                                      const char *label)
@@ -375,6 +577,14 @@ static void app_ui_draw_metric_panel(uint16_t x,
                      320U, 16U, 16U, label, UI_COLOR_MUTED);
 }
 
+/**
+ * @brief app_ui_show_boot：根据输入参数和当前状态绘制或更新对应显示内容。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param touch_available 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param controller_id 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 void app_ui_show_boot(uint8_t touch_available, const char *controller_id)
 {
     g_cursor_visible = 0U;
@@ -397,6 +607,13 @@ void app_ui_show_boot(uint8_t touch_available, const char *controller_id)
     }
 }
 
+/**
+ * @brief app_ui_show_login：根据输入参数和当前状态绘制或更新对应显示内容。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param touch_available 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 void app_ui_show_login(uint8_t touch_available)
 {
     uint8_t row;
@@ -424,6 +641,16 @@ void app_ui_show_login(uint8_t touch_available)
     app_ui_update_login(0U, 0U, "ENTER PIN", 0U);
 }
 
+/**
+ * @brief app_ui_update_login：使用最新数据更新缓存、硬件输出或界面显示状态。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param digit_count 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param failed_attempts 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param message 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param is_error 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 void app_ui_update_login(uint8_t digit_count,
                          uint8_t failed_attempts,
                          const char *message,
@@ -456,6 +683,14 @@ void app_ui_update_login(uint8_t digit_count,
                        failed_attempts ? RED : UI_COLOR_TOP);
 }
 
+/**
+ * @brief app_ui_login_key_at：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param x 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param y 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 int8_t app_ui_login_key_at(uint16_t x, uint16_t y)
 {
     uint16_t local_x;
@@ -490,6 +725,94 @@ int8_t app_ui_login_key_at(uint16_t x, uint16_t y)
     return key_values[row][column];
 }
 
+static void app_ui_draw_keyboard_button(uint16_t x,
+                                        uint16_t y,
+                                        uint16_t width,
+                                        const char *label,
+                                        uint16_t color)
+{
+    lcd_fill(x, y, (uint16_t)(x + width - 1U),
+             (uint16_t)(y + TEXT_KEYBOARD_HEIGHT - 1U), color);
+    lcd_draw_rectangle(x, y, (uint16_t)(x + width - 1U),
+                       (uint16_t)(y + TEXT_KEYBOARD_HEIGHT - 1U), WHITE);
+    app_ui_show_centered(x, (uint16_t)(y + 11U), width, 16U, label, WHITE);
+}
+
+void app_ui_draw_keyboard(app_ui_keyboard_mode_t mode)
+{
+    const char (*labels)[11];
+    const char *shift_label;
+    const char *number_label;
+    uint16_t x;
+    uint16_t y;
+    uint8_t row;
+    uint8_t column;
+    uint8_t restore_cursor;
+    uint16_t cursor_x;
+    uint16_t cursor_y;
+    char character_label[2];
+
+    if (mode != APP_UI_KEYBOARD_MODE_UPPER &&
+        mode != APP_UI_KEYBOARD_MODE_NUMBER)
+    {
+        mode = APP_UI_KEYBOARD_MODE_LOWER;
+    }
+    labels = (mode == APP_UI_KEYBOARD_MODE_NUMBER) ?
+             g_keyboard_number : g_keyboard_lower;
+    shift_label = (mode == APP_UI_KEYBOARD_MODE_UPPER) ? "lower" : "SHIFT";
+    number_label = (mode == APP_UI_KEYBOARD_MODE_NUMBER) ? "ABC" : "123";
+
+    restore_cursor = g_cursor_visible;
+    cursor_x = g_cursor_x;
+    cursor_y = g_cursor_y;
+    app_ui_cursor_hide();
+    lcd_fill(16U, 206U, 792U, 440U, UI_COLOR_PANEL_DARK);
+    lcd_draw_rectangle(16U, 206U, 792U, 440U, UI_COLOR_MUTED);
+    character_label[1] = '\0';
+    for (row = 0U; row < 3U; row++)
+    {
+        y = (uint16_t)(TEXT_KEYBOARD_Y + row *
+            (TEXT_KEYBOARD_HEIGHT + TEXT_KEYBOARD_GAP_Y));
+        for (column = 0U; column < 10U; column++)
+        {
+            x = (uint16_t)(TEXT_KEYBOARD_X + column *
+                (TEXT_KEYBOARD_WIDTH + TEXT_KEYBOARD_GAP_X));
+            character_label[0] = labels[row][column];
+            if (mode == APP_UI_KEYBOARD_MODE_UPPER &&
+                character_label[0] >= 'a' && character_label[0] <= 'z')
+            {
+                character_label[0] =
+                    (char)(character_label[0] - ('a' - 'A'));
+            }
+            app_ui_draw_keyboard_button(x, y, TEXT_KEYBOARD_WIDTH,
+                                        character_label, UI_COLOR_BUTTON);
+        }
+    }
+
+    app_ui_draw_keyboard_button(24U, 343U, 140U, shift_label,
+                                (mode == APP_UI_KEYBOARD_MODE_UPPER) ?
+                                UI_COLOR_SELECTED : UI_COLOR_BUTTON);
+    app_ui_draw_keyboard_button(169U, 343U, 140U, number_label,
+                                (mode == APP_UI_KEYBOARD_MODE_NUMBER) ?
+                                UI_COLOR_SELECTED : UI_COLOR_BUTTON);
+    app_ui_draw_keyboard_button(314U, 343U, 140U, "SPACE", UI_COLOR_BUTTON);
+    app_ui_draw_keyboard_button(459U, 343U, 140U, "BKSP", UI_COLOR_BUTTON);
+    app_ui_draw_keyboard_button(604U, 343U, 140U, "ENTER", UI_COLOR_BUTTON);
+    app_ui_draw_keyboard_button(214U, 391U, 180U, "OK", UI_COLOR_SELECTED);
+    app_ui_draw_keyboard_button(409U, 391U, 180U, "CANCEL", UI_COLOR_BUTTON);
+    if (restore_cursor)
+    {
+        app_ui_cursor_show(cursor_x, cursor_y);
+    }
+}
+
+/**
+ * @brief app_ui_show_locked：根据输入参数和当前状态绘制或更新对应显示内容。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param remaining_seconds 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 void app_ui_show_locked(uint32_t remaining_seconds)
 {
     g_cursor_visible = 0U;
@@ -501,6 +824,13 @@ void app_ui_show_locked(uint32_t remaining_seconds)
     app_ui_update_locked(remaining_seconds);
 }
 
+/**
+ * @brief app_ui_update_locked：使用最新数据更新缓存、硬件输出或界面显示状态。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param remaining_seconds 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 void app_ui_update_locked(uint32_t remaining_seconds)
 {
     lcd_fill(330U, 275U, 470U, 335U, UI_COLOR_TOP);
@@ -508,6 +838,15 @@ void app_ui_update_locked(uint32_t remaining_seconds)
     app_ui_show_text(424U, 299U, 32U, 16U, 16U, "s", WHITE);
 }
 
+/**
+ * @brief app_ui_show_desktop：根据输入参数和当前状态绘制或更新对应显示内容。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param touch_available 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param controller_id 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param uptime_seconds 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 void app_ui_show_desktop(uint8_t touch_available,
                          const char *controller_id,
                          uint32_t uptime_seconds)
@@ -550,6 +889,13 @@ void app_ui_show_desktop(uint8_t touch_available,
     app_ui_update_desktop_time(uptime_seconds);
 }
 
+/**
+ * @brief app_ui_update_desktop_time：使用最新数据更新缓存、硬件输出或界面显示状态。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param uptime_seconds 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 void app_ui_update_desktop_time(uint32_t uptime_seconds)
 {
     char time_text[9];
@@ -572,6 +918,14 @@ void app_ui_update_desktop_time(uint32_t uptime_seconds)
     }
 }
 
+/**
+ * @brief app_ui_update_desktop_mouse：使用最新数据更新缓存、硬件输出或界面显示状态。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param connection_known 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param mouse_connected 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 void app_ui_update_desktop_mouse(uint8_t connection_known,
                                  uint8_t mouse_connected)
 {
@@ -609,12 +963,27 @@ void app_ui_update_desktop_mouse(uint8_t connection_known,
     }
 }
 
+/**
+ * @brief app_ui_move_cursor：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param x 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param y 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 void app_ui_move_cursor(uint16_t x, uint16_t y)
 {
     app_ui_cursor_hide();
     app_ui_cursor_show(x, y);
 }
 
+/**
+ * @brief app_ui_set_cursor_size：把调用方数据写入目标寄存器、缓冲区或模块状态。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param cursor_size 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 void app_ui_set_cursor_size(uint8_t cursor_size)
 {
     uint8_t restore_cursor;
@@ -639,6 +1008,14 @@ void app_ui_set_cursor_size(uint8_t cursor_size)
     }
 }
 
+/**
+ * @brief app_ui_desktop_icon_at：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param x 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param y 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 int8_t app_ui_desktop_icon_at(uint16_t x, uint16_t y)
 {
     uint8_t index;
@@ -657,6 +1034,13 @@ int8_t app_ui_desktop_icon_at(uint16_t x, uint16_t y)
     return -1;
 }
 
+/**
+ * @brief app_ui_select_desktop_icon：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param icon_index 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 void app_ui_select_desktop_icon(int8_t icon_index)
 {
     uint8_t restore_cursor;
@@ -691,21 +1075,52 @@ void app_ui_select_desktop_icon(int8_t icon_index)
     }
 }
 
+/**
+ * @brief app_ui_desktop_sleep_button_at：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param x 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param y 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 uint8_t app_ui_desktop_sleep_button_at(uint16_t x, uint16_t y)
 {
     return (x >= 18U && x <= 162U && y >= 306U && y <= 350U) ? 1U : 0U;
 }
 
+/**
+ * @brief app_ui_back_button_at：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param x 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param y 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 uint8_t app_ui_back_button_at(uint16_t x, uint16_t y)
 {
     return (x >= 12U && x <= 108U && y >= 8U && y <= 39U) ? 1U : 0U;
 }
 
+/**
+ * @brief app_ui_application_sleep_button_at：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param x 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param y 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 uint8_t app_ui_application_sleep_button_at(uint16_t x, uint16_t y)
 {
     return (x >= 680U && x <= 788U && y >= 8U && y <= 39U) ? 1U : 0U;
 }
 
+/**
+ * @brief app_ui_show_application：根据输入参数和当前状态绘制或更新对应显示内容。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param application 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 void app_ui_show_application(app_ui_application_t application)
 {
     const desktop_icon_t *icon;
@@ -729,6 +1144,15 @@ void app_ui_show_application(app_ui_application_t application)
                          "This feature will be implemented later", UI_COLOR_PANEL);
 }
 
+/**
+ * @brief app_ui_draw_music_button：根据输入参数和当前状态绘制或更新对应显示内容。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param y 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param label 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param enabled 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 static void app_ui_draw_music_button(uint16_t y,
                                      const char *label,
                                      uint8_t enabled)
@@ -748,6 +1172,29 @@ static void app_ui_draw_music_button(uint16_t y,
                          FILE_BUTTON_WIDTH, 16U, label, text_color);
 }
 
+static void app_ui_draw_music_pair_button(uint16_t x,
+                                          uint16_t y,
+                                          const char *label,
+                                          uint8_t enabled)
+{
+    uint16_t fill_color;
+    uint16_t text_color;
+
+    fill_color = enabled ? UI_COLOR_BUTTON : UI_COLOR_PANEL_DARK;
+    text_color = enabled ? WHITE : UI_COLOR_MUTED;
+    lcd_fill(x, y, (uint16_t)(x + 73U), (uint16_t)(y + 39U), fill_color);
+    lcd_draw_rectangle(x, y, (uint16_t)(x + 73U), (uint16_t)(y + 39U),
+                       enabled ? WHITE : UI_COLOR_MUTED);
+    app_ui_show_centered(x, (uint16_t)(y + 12U), 74U, 16U, label, text_color);
+}
+
+/**
+ * @brief app_ui_music_state_text：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param state 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static const char *app_ui_music_state_text(app_audio_state_t state)
 {
     if (state == APP_AUDIO_STATE_PLAYING)
@@ -777,6 +1224,13 @@ static const char *app_ui_music_state_text(app_audio_state_t state)
     return "STOPPED";
 }
 
+/**
+ * @brief app_ui_music_progress：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param snapshot 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static uint32_t app_ui_music_progress(const app_audio_snapshot_t *snapshot)
 {
     uint32_t progress;
@@ -794,6 +1248,13 @@ static uint32_t app_ui_music_progress(const app_audio_snapshot_t *snapshot)
     return progress;
 }
 
+/**
+ * @brief app_ui_show_music：根据输入参数和当前状态绘制或更新对应显示内容。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param snapshot 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 void app_ui_show_music(const app_audio_snapshot_t *snapshot)
 {
     uint8_t restore_cursor;
@@ -871,15 +1332,19 @@ void app_ui_show_music(const app_audio_snapshot_t *snapshot)
                      snapshot->status, WHITE);
     app_ui_show_text(44U, 372U, 510U, 16U, 16U,
                      "WAV: PCM 16-BIT, 16/32/44.1/48 KHZ", UI_COLOR_MUTED);
-
     play_label = (snapshot->state == APP_AUDIO_STATE_PLAYING ||
                   snapshot->state == APP_AUDIO_STATE_TEST_TONE) ? "PAUSE" :
                  (snapshot->state == APP_AUDIO_STATE_PAUSED) ? "RESUME" : "PLAY";
-    app_ui_draw_music_button(70U, "PREVIOUS", snapshot->track_count > 0U);
-    app_ui_draw_music_button(120U, play_label, snapshot->track_count > 0U ||
-                             snapshot->state == APP_AUDIO_STATE_PAUSED);
-    app_ui_draw_music_button(170U, "STOP", 1U);
-    app_ui_draw_music_button(220U, "NEXT", snapshot->track_count > 0U);
+    app_ui_draw_music_pair_button(620U, 70U, "PREV", snapshot->track_count > 0U);
+    app_ui_draw_music_pair_button(701U, 70U, "NEXT", snapshot->track_count > 0U);
+    app_ui_draw_music_pair_button(620U, 120U, play_label,
+                                  snapshot->track_count > 0U ||
+                                  snapshot->state == APP_AUDIO_STATE_PAUSED);
+    app_ui_draw_music_pair_button(701U, 120U, "STOP", 1U);
+    app_ui_draw_music_pair_button(620U, 170U, "-5 SEC", snapshot->seek_available);
+    app_ui_draw_music_pair_button(701U, 170U, "+5 SEC", snapshot->seek_available);
+    app_ui_draw_music_pair_button(620U, 220U, "VOL -", snapshot->volume_percent > 0U);
+    app_ui_draw_music_pair_button(701U, 220U, "VOL +", snapshot->volume_percent < 100U);
     app_ui_draw_music_button(290U, "TEST 440HZ", 1U);
     app_ui_draw_music_button(350U, "RESCAN SD", 1U);
 
@@ -889,6 +1354,14 @@ void app_ui_show_music(const app_audio_snapshot_t *snapshot)
     }
 }
 
+/**
+ * @brief app_ui_update_music：使用最新数据更新缓存、硬件输出或界面显示状态。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param snapshot 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param previous 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 void app_ui_update_music(const app_audio_snapshot_t *snapshot,
                          const app_audio_snapshot_t *previous)
 {
@@ -897,6 +1370,7 @@ void app_ui_update_music(const app_audio_snapshot_t *snapshot,
     uint8_t volume_changed;
     uint8_t progress_changed;
     uint8_t status_changed;
+    uint8_t controls_changed;
     uint16_t cursor_x;
     uint16_t cursor_y;
     uint32_t progress;
@@ -915,8 +1389,10 @@ void app_ui_update_music(const app_audio_snapshot_t *snapshot,
     progress_changed = (progress != previous_progress) ? 1U : 0U;
     status_changed = (strcmp(snapshot->status, previous->status) != 0) ?
                      1U : 0U;
-    if (!state_changed && !volume_changed && !progress_changed &&
-        !status_changed)
+    controls_changed = (state_changed || volume_changed ||
+                        snapshot->seek_available != previous->seek_available) ?
+                       1U : 0U;
+    if (!controls_changed && !progress_changed && !status_changed)
     {
         return;
     }
@@ -925,6 +1401,9 @@ void app_ui_update_music(const app_audio_snapshot_t *snapshot,
     cursor_x = g_cursor_x;
     cursor_y = g_cursor_y;
     app_ui_cursor_hide();
+    play_label = (snapshot->state == APP_AUDIO_STATE_PLAYING ||
+                  snapshot->state == APP_AUDIO_STATE_TEST_TONE) ? "PAUSE" :
+                 (snapshot->state == APP_AUDIO_STATE_PAUSED) ? "RESUME" : "PLAY";
 
     if (state_changed)
     {
@@ -932,12 +1411,6 @@ void app_ui_update_music(const app_audio_snapshot_t *snapshot,
         app_ui_show_text(140U, 154U, 180U, 16U, 16U,
                          app_ui_music_state_text(snapshot->state),
                          snapshot->state == APP_AUDIO_STATE_ERROR ? RED : YELLOW);
-        play_label = (snapshot->state == APP_AUDIO_STATE_PLAYING ||
-                      snapshot->state == APP_AUDIO_STATE_TEST_TONE) ? "PAUSE" :
-                     (snapshot->state == APP_AUDIO_STATE_PAUSED) ? "RESUME" : "PLAY";
-        app_ui_draw_music_button(120U, play_label,
-                                 snapshot->track_count > 0U ||
-                                 snapshot->state == APP_AUDIO_STATE_PAUSED);
     }
     if (volume_changed)
     {
@@ -963,6 +1436,16 @@ void app_ui_update_music(const app_audio_snapshot_t *snapshot,
         app_ui_show_text(44U, 330U, 510U, 16U, 16U,
                          snapshot->status, WHITE);
     }
+    if (controls_changed)
+    {
+        app_ui_draw_music_pair_button(620U, 120U, play_label,
+                                      snapshot->track_count > 0U ||
+                                      snapshot->state == APP_AUDIO_STATE_PAUSED);
+        app_ui_draw_music_pair_button(620U, 170U, "-5 SEC", snapshot->seek_available);
+        app_ui_draw_music_pair_button(701U, 170U, "+5 SEC", snapshot->seek_available);
+        app_ui_draw_music_pair_button(620U, 220U, "VOL -", snapshot->volume_percent > 0U);
+        app_ui_draw_music_pair_button(701U, 220U, "VOL +", snapshot->volume_percent < 100U);
+    }
 
     if (restore_cursor)
     {
@@ -970,6 +1453,14 @@ void app_ui_update_music(const app_audio_snapshot_t *snapshot,
     }
 }
 
+/**
+ * @brief app_ui_music_action_at：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param x 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param y 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 app_ui_music_action_t app_ui_music_action_at(uint16_t x, uint16_t y)
 {
     if (x < FILE_BUTTON_X || x >= FILE_BUTTON_X + FILE_BUTTON_WIDTH)
@@ -978,19 +1469,23 @@ app_ui_music_action_t app_ui_music_action_at(uint16_t x, uint16_t y)
     }
     if (y >= 70U && y < 110U)
     {
-        return APP_UI_MUSIC_ACTION_PREVIOUS;
+        return x < 700U ? APP_UI_MUSIC_ACTION_PREVIOUS :
+                          APP_UI_MUSIC_ACTION_NEXT;
     }
     if (y >= 120U && y < 160U)
     {
-        return APP_UI_MUSIC_ACTION_PLAY_PAUSE;
+        return x < 700U ? APP_UI_MUSIC_ACTION_PLAY_PAUSE :
+                          APP_UI_MUSIC_ACTION_STOP;
     }
     if (y >= 170U && y < 210U)
     {
-        return APP_UI_MUSIC_ACTION_STOP;
+        return x < 700U ? APP_UI_MUSIC_ACTION_SEEK_BACK :
+                          APP_UI_MUSIC_ACTION_SEEK_FORWARD;
     }
     if (y >= 220U && y < 260U)
     {
-        return APP_UI_MUSIC_ACTION_NEXT;
+        return x < 700U ? APP_UI_MUSIC_ACTION_VOLUME_DOWN :
+                          APP_UI_MUSIC_ACTION_VOLUME_UP;
     }
     if (y >= 290U && y < 330U)
     {
@@ -1003,6 +1498,15 @@ app_ui_music_action_t app_ui_music_action_at(uint16_t x, uint16_t y)
     return APP_UI_MUSIC_ACTION_NONE;
 }
 
+/**
+ * @brief app_ui_draw_draw_button：根据输入参数和当前状态绘制或更新对应显示内容。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param y 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param label 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param enabled 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 static void app_ui_draw_draw_button(uint16_t y,
                                     const char *label,
                                     uint8_t enabled)
@@ -1023,6 +1527,16 @@ static void app_ui_draw_draw_button(uint16_t y,
                          DRAW_BUTTON_WIDTH, 16U, label, text_color);
 }
 
+/**
+ * @brief app_ui_draw_color_button：根据输入参数和当前状态绘制或更新对应显示内容。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param x 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param y 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param color 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param selected_color 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 static void app_ui_draw_color_button(uint16_t x,
                                      uint16_t y,
                                      uint16_t color,
@@ -1044,6 +1558,15 @@ static void app_ui_draw_color_button(uint16_t x,
     }
 }
 
+/**
+ * @brief app_ui_update_draw_controls：使用最新数据更新缓存、硬件输出或界面显示状态。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param selected_color 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param status 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param busy 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 void app_ui_update_draw_controls(uint16_t selected_color,
                                  const char *status,
                                  uint8_t busy)
@@ -1057,7 +1580,7 @@ void app_ui_update_draw_controls(uint16_t selected_color,
     cursor_y = g_cursor_y;
     app_ui_cursor_hide();
 
-    app_ui_draw_draw_button(70U, "CLEAR", !busy);
+    app_ui_draw_draw_button(70U, "UNDO", !busy);
     app_ui_draw_draw_button(128U, "SAVE", !busy);
     app_ui_draw_draw_button(186U, "OPEN", !busy);
 
@@ -1087,6 +1610,15 @@ void app_ui_update_draw_controls(uint16_t selected_color,
     }
 }
 
+/**
+ * @brief app_ui_show_draw：根据输入参数和当前状态绘制或更新对应显示内容。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param selected_color 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param status 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param busy 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 void app_ui_show_draw(uint16_t selected_color,
                       const char *status,
                       uint8_t busy)
@@ -1098,6 +1630,17 @@ void app_ui_show_draw(uint16_t selected_color,
     app_ui_update_draw_controls(selected_color, status, busy);
 }
 
+/**
+ * @brief app_ui_draw_stroke：根据输入参数和当前状态绘制或更新对应显示内容。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param x1 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param y1 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param x2 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param y2 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param color 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 void app_ui_draw_stroke(uint16_t x1,
                         uint16_t y1,
                         uint16_t x2,
@@ -1121,9 +1664,6 @@ void app_ui_draw_stroke(uint16_t x1,
 
     lcd_draw_line(x1, y1, x2, y2, color);
 
-    /* Fill the brush along the segment, not only at its endpoints.  Input
-       reports can be several pixels apart during fast movement; endpoint
-       dots otherwise leave a visibly thin, dotted-looking stroke. */
     delta_x = (int32_t)x2 - (int32_t)x1;
     delta_y = (int32_t)y2 - (int32_t)y1;
     steps = (uint32_t)((delta_x < 0) ? -delta_x : delta_x);
@@ -1150,13 +1690,21 @@ void app_ui_draw_stroke(uint16_t x1,
     }
 }
 
+/**
+ * @brief app_ui_draw_action_at：根据输入参数和当前状态绘制或更新对应显示内容。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param x 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param y 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 app_ui_draw_action_t app_ui_draw_action_at(uint16_t x, uint16_t y)
 {
     if (x >= DRAW_BUTTON_X && x < DRAW_BUTTON_X + DRAW_BUTTON_WIDTH)
     {
         if (y >= 70U && y < 70U + DRAW_BUTTON_HEIGHT)
         {
-            return APP_UI_DRAW_ACTION_CLEAR;
+            return APP_UI_DRAW_ACTION_UNDO;
         }
         if (y >= 128U && y < 128U + DRAW_BUTTON_HEIGHT)
         {
@@ -1193,6 +1741,75 @@ app_ui_draw_action_t app_ui_draw_action_at(uint16_t x, uint16_t y)
     return APP_UI_DRAW_ACTION_NONE;
 }
 
+void app_ui_show_draw_save_dialog(const char names[][13], uint8_t count,
+                                  int8_t selected, const char *status)
+{
+    uint8_t index;
+    uint16_t x;
+    uint16_t y;
+    uint16_t fill;
+
+    app_ui_cursor_hide();
+    app_ui_draw_application_header("DRAWING SAMPLES");
+    lcd_fill(50U, 58U, 750U, 430U, UI_COLOR_PANEL_DARK);
+    lcd_draw_rectangle(50U, 58U, 750U, 430U, UI_COLOR_MUTED);
+    app_ui_show_text(72U, 70U, 650U, 16U, 16U,
+                     status != NULL ? status : "SELECT A SAMPLE", WHITE);
+    for (index = 0U; index < 8U; index++)
+    {
+        x = (index & 1U) ? 410U : 72U;
+        y = (uint16_t)(102U + (index / 2U) * 52U);
+        fill = ((int8_t)index == selected) ? UI_COLOR_SELECTED : UI_COLOR_BUTTON;
+        if (index >= count) fill = UI_COLOR_PANEL_DARK;
+        lcd_fill(x, y, (uint16_t)(x + 316U), (uint16_t)(y + 39U), fill);
+        lcd_draw_rectangle(x, y, (uint16_t)(x + 316U),
+                           (uint16_t)(y + 39U), UI_COLOR_MUTED);
+        if (index < count)
+        {
+            app_ui_show_centered(x, (uint16_t)(y + 12U), 317U, 16U,
+                                 names[index], WHITE);
+        }
+    }
+    app_ui_draw_file_button(72U, 330U, 190U, "SAVE NEW", 1U);
+    app_ui_draw_file_button(305U, 330U, 190U, "RENAME", selected >= 0);
+    app_ui_draw_file_button(538U, 330U, 190U, "CANCEL", 1U);
+    app_ui_show_text(72U, 392U, 650U, 16U, 16U,
+                     "TOUCH SAMPLE: SAVE/OPEN   RENAME: SELECT THEN RENAME",
+                     UI_COLOR_MUTED);
+}
+
+app_ui_draw_save_action_t app_ui_draw_save_action_at(uint16_t x, uint16_t y)
+{
+    uint8_t row;
+    uint8_t column;
+
+    if (y >= 102U && y < 298U)
+    {
+        row = (uint8_t)((y - 102U) / 52U);
+        if (((y - 102U) % 52U) >= 40U || row >= 4U) return APP_UI_DRAW_SAVE_NONE;
+        if (x >= 72U && x < 389U) column = 0U;
+        else if (x >= 410U && x < 727U) column = 1U;
+        else return APP_UI_DRAW_SAVE_NONE;
+        return (app_ui_draw_save_action_t)(APP_UI_DRAW_SAVE_SAMPLE0 + row * 2U + column);
+    }
+    if (y >= 330U && y < 372U)
+    {
+        if (x >= 72U && x < 262U) return APP_UI_DRAW_SAVE_NEW;
+        if (x >= 305U && x < 495U) return APP_UI_DRAW_SAVE_RENAME;
+        if (x >= 538U && x < 728U) return APP_UI_DRAW_SAVE_CANCEL;
+    }
+    return APP_UI_DRAW_SAVE_NONE;
+}
+
+/**
+ * @brief app_ui_draw_log_button：根据输入参数和当前状态绘制或更新对应显示内容。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param y 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param label 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param enabled 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 static void app_ui_draw_log_button(uint16_t y,
                                    const char *label,
                                    uint8_t enabled)
@@ -1213,6 +1830,13 @@ static void app_ui_draw_log_button(uint16_t y,
                          LOG_BUTTON_WIDTH, 16U, label, text_color);
 }
 
+/**
+ * @brief app_ui_log_level_color：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param level 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static uint16_t app_ui_log_level_color(app_log_level_t level)
 {
     if (level == APP_LOG_LEVEL_ERROR)
@@ -1226,6 +1850,13 @@ static uint16_t app_ui_log_level_color(app_log_level_t level)
     return GREEN;
 }
 
+/**
+ * @brief app_ui_log_level_text：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param level 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static const char *app_ui_log_level_text(app_log_level_t level)
 {
     if (level == APP_LOG_LEVEL_ERROR)
@@ -1239,6 +1870,18 @@ static const char *app_ui_log_level_text(app_log_level_t level)
     return "INFO";
 }
 
+/**
+ * @brief app_ui_show_logs：根据输入参数和当前状态绘制或更新对应显示内容。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param entries 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param entry_count 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param page 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param status 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param busy 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param clear_armed 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 void app_ui_show_logs(const app_log_entry_t *entries,
                       uint8_t entry_count,
                       uint8_t page,
@@ -1327,6 +1970,14 @@ void app_ui_show_logs(const app_log_entry_t *entries,
     }
 }
 
+/**
+ * @brief app_ui_logs_action_at：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param x 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param y 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 app_ui_logs_action_t app_ui_logs_action_at(uint16_t x, uint16_t y)
 {
     if (x < LOG_BUTTON_X || x >= LOG_BUTTON_X + LOG_BUTTON_WIDTH)
@@ -1352,6 +2003,19 @@ app_ui_logs_action_t app_ui_logs_action_at(uint16_t x, uint16_t y)
     return APP_UI_LOGS_ACTION_NONE;
 }
 
+/**
+ * @brief app_ui_draw_settings_button：根据输入参数和当前状态绘制或更新对应显示内容。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param x 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param y 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param width 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param height 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param label 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param selected 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param enabled 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 static void app_ui_draw_settings_button(uint16_t x,
                                         uint16_t y,
                                         uint16_t width,
@@ -1391,6 +2055,18 @@ static void app_ui_draw_settings_button(uint16_t x,
                          width, 16U, label, text_color);
 }
 
+/**
+ * @brief app_ui_draw_time_field：根据输入参数和当前状态绘制或更新对应显示内容。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param x 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param y 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param label 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param value 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param digits 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param enabled 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 static void app_ui_draw_time_field(uint16_t x,
                                    uint16_t y,
                                    const char *label,
@@ -1415,6 +2091,14 @@ static void app_ui_draw_time_field(uint16_t x,
                                 56U, 44U, "+", 0U, enabled);
 }
 
+/**
+ * @brief app_ui_show_time_settings：根据输入参数和当前状态绘制或更新对应显示内容。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param datetime 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param rtc_available 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 void app_ui_show_time_settings(const app_rtc_datetime_t *datetime,
                                uint8_t rtc_available)
 {
@@ -1462,6 +2146,14 @@ void app_ui_show_time_settings(const app_rtc_datetime_t *datetime,
     }
 }
 
+/**
+ * @brief app_ui_time_action_at：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param x 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param y 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 app_ui_time_action_t app_ui_time_action_at(uint16_t x, uint16_t y)
 {
     uint8_t column;
@@ -1522,6 +2214,21 @@ app_ui_time_action_t app_ui_time_action_at(uint16_t x, uint16_t y)
     return APP_UI_TIME_ACTION_NONE;
 }
 
+/**
+ * @brief app_ui_show_settings：根据输入参数和当前状态绘制或更新对应显示内容。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param cursor_sensitivity 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param cursor_size 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param brightness_percent 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param volume_percent 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param idle_timeout_seconds 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param serial_output_enabled 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param dirty 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param status 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param busy 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 void app_ui_show_settings(uint8_t cursor_sensitivity,
                           uint8_t cursor_size,
                           uint8_t brightness_percent,
@@ -1648,6 +2355,14 @@ void app_ui_show_settings(uint8_t cursor_sensitivity,
     }
 }
 
+/**
+ * @brief app_ui_settings_action_at：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param x 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param y 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 app_ui_settings_action_t app_ui_settings_action_at(uint16_t x, uint16_t y)
 {
     if (y >= 92U && y < 124U)
@@ -1767,6 +2482,17 @@ app_ui_settings_action_t app_ui_settings_action_at(uint16_t x, uint16_t y)
     return APP_UI_SETTINGS_ACTION_NONE;
 }
 
+/**
+ * @brief app_ui_draw_file_button：根据输入参数和当前状态绘制或更新对应显示内容。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param x 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param y 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param width 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param label 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param enabled 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 static void app_ui_draw_file_button(uint16_t x,
                                     uint16_t y,
                                     uint16_t width,
@@ -1787,6 +2513,18 @@ static void app_ui_draw_file_button(uint16_t x,
                          label, text_color);
 }
 
+/**
+ * @brief app_ui_show_multiline：根据输入参数和当前状态绘制或更新对应显示内容。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param x 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param y 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param width 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param height 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param text 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param color 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 static void app_ui_show_multiline(uint16_t x,
                                   uint16_t y,
                                   uint16_t width,
@@ -1838,6 +2576,14 @@ static void app_ui_show_multiline(uint16_t x,
     }
 }
 
+/**
+ * @brief app_ui_show_files_status：根据输入参数和当前状态绘制或更新对应显示内容。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param status 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param busy 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 static void app_ui_show_files_status(const char *status, uint8_t busy)
 {
     lcd_fill(190U, 452U, 790U, 475U, UI_COLOR_TOP);
@@ -1854,6 +2600,18 @@ static void app_ui_show_files_status(const char *status, uint8_t busy)
     }
 }
 
+/**
+ * @brief app_ui_show_files_list：根据输入参数和当前状态绘制或更新对应显示内容。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param files 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param file_count 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param page 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param selected_file 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param status 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param busy 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 void app_ui_show_files_list(const app_storage_file_t *files,
                             uint8_t file_count,
                             uint8_t page,
@@ -1932,6 +2690,18 @@ void app_ui_show_files_list(const app_storage_file_t *files,
     }
 }
 
+/**
+ * @brief app_ui_show_file_content：根据输入参数和当前状态绘制或更新对应显示内容。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param name 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param content 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param file_size 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param dirty 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param status 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param busy 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 void app_ui_show_file_content(const char *name,
                               const char *content,
                               uint32_t file_size,
@@ -1964,10 +2734,11 @@ void app_ui_show_file_content(const char *name,
     app_ui_show_multiline(48U, 120U, 700U, 180U,
                           content != NULL ? content : "", WHITE);
 
-    app_ui_draw_file_button(40U, 366U, 150U, "EDIT", !busy);
-    app_ui_draw_file_button(220U, 366U, 150U, "SAVE", !busy && dirty);
-    app_ui_draw_file_button(400U, 366U, 150U, "DELETE", !busy);
-    app_ui_draw_file_button(580U, 366U, 150U, "LIST", !busy);
+    app_ui_draw_file_button(20U, 366U, 140U, "EDIT", !busy);
+    app_ui_draw_file_button(175U, 366U, 140U, "SAVE", !busy && dirty);
+    app_ui_draw_file_button(330U, 366U, 140U, "RENAME", !busy);
+    app_ui_draw_file_button(485U, 366U, 140U, "DELETE", !busy);
+    app_ui_draw_file_button(640U, 366U, 140U, "LIST", !busy);
     app_ui_show_files_status(status, busy);
 
     if (restore_cursor)
@@ -1976,6 +2747,175 @@ void app_ui_show_file_content(const char *name,
     }
 }
 
+static const char *app_ui_file_editor_tail(const char *content)
+{
+    uint16_t length;
+    uint16_t start;
+    uint8_t lines;
+
+    if (content == NULL)
+    {
+        return "";
+    }
+    length = (uint16_t)strlen(content);
+    start = length;
+    lines = 0U;
+    while (start > 0U && length - start < 150U)
+    {
+        start--;
+        if (content[start] == '\n')
+        {
+            lines++;
+            if (lines >= 4U)
+            {
+                start++;
+                break;
+            }
+        }
+    }
+    return &content[start];
+}
+
+void app_ui_show_file_editor(const char *title,
+                             const char *name,
+                             const char *content,
+                             uint16_t content_length,
+                             uint8_t name_editor,
+                             const char *status,
+                             app_ui_keyboard_mode_t keyboard_mode)
+{
+    uint8_t restore_cursor;
+    uint16_t cursor_x;
+    uint16_t cursor_y;
+    (void)content_length;
+    restore_cursor = g_cursor_visible;
+    cursor_x = g_cursor_x;
+    cursor_y = g_cursor_y;
+    app_ui_cursor_hide();
+    app_ui_draw_application_header(title != NULL ? title : "FILE EDITOR");
+    lcd_fill(24U, 54U, 775U, 198U, UI_COLOR_PANEL_DARK);
+    lcd_draw_rectangle(24U, 54U, 775U, 198U, UI_COLOR_MUTED);
+    app_ui_show_text(40U, 64U, 100U, 16U, 16U,
+                     name_editor ? "NEW NAME:" : "FILE NAME:", UI_COLOR_MUTED);
+    app_ui_show_text(150U, 64U, 560U, 24U, 24U,
+                     name != NULL ? name : "", WHITE);
+    if (!name_editor)
+    {
+        app_ui_show_text(40U, 88U, 80U, 16U, 16U, "CONTENT:", UI_COLOR_MUTED);
+        lcd_draw_rectangle(38U, 106U, 761U, 190U, UI_COLOR_TOP);
+        app_ui_show_multiline(48U, 112U, 700U, 72U,
+                              app_ui_file_editor_tail(content), WHITE);
+    }
+    else
+    {
+        lcd_draw_rectangle(38U, 100U, 761U, 142U, UI_COLOR_TOP);
+        app_ui_show_text(48U, 113U, 690U, 16U, 16U,
+                         "8.3 NAME: BASE 1-8, EXTENSION 0-3", UI_COLOR_MUTED);
+        app_ui_show_text(48U, 164U, 690U, 16U, 16U,
+                         status != NULL ? status : "TYPE NAME THEN OK", WHITE);
+    }
+    if (!name_editor)
+    {
+        app_ui_show_text(16U, 456U, 760U, 16U, 16U,
+                         status != NULL ? status : "", WHITE);
+    }
+    app_ui_draw_keyboard(keyboard_mode);
+    if (restore_cursor)
+    {
+        app_ui_cursor_show(cursor_x, cursor_y);
+    }
+}
+
+void app_ui_update_file_editor(const char *title,
+                               const char *name,
+                               const char *content,
+                               uint16_t content_length,
+                               uint8_t name_editor,
+                               const char *status,
+                               app_ui_keyboard_mode_t keyboard_mode)
+{
+    uint8_t restore_cursor;
+    uint16_t cursor_x;
+    uint16_t cursor_y;
+
+    (void)title;
+    (void)content_length;
+    (void)keyboard_mode;
+    restore_cursor = g_cursor_visible;
+    cursor_x = g_cursor_x;
+    cursor_y = g_cursor_y;
+    app_ui_cursor_hide();
+    lcd_fill(142U, 60U, 760U, 91U, UI_COLOR_PANEL_DARK);
+    app_ui_show_text(150U, 64U, 600U, 24U, 24U,
+                     name != NULL ? name : "", WHITE);
+    if (name_editor)
+    {
+        lcd_fill(42U, 158U, 758U, 187U, UI_COLOR_PANEL_DARK);
+        app_ui_show_text(48U, 164U, 700U, 16U, 16U,
+                         status != NULL ? status : "", WHITE);
+    }
+    else
+    {
+        lcd_fill(40U, 108U, 759U, 188U, UI_COLOR_PANEL_DARK);
+        app_ui_show_multiline(48U, 112U, 700U, 72U,
+                              app_ui_file_editor_tail(content), WHITE);
+        lcd_fill(0U, 448U, UI_WIDTH - 1U, UI_HEIGHT - 1U, UI_COLOR_TOP);
+        app_ui_show_text(16U, 456U, 760U, 16U, 16U,
+                         status != NULL ? status : "", WHITE);
+    }
+    if (restore_cursor)
+    {
+        app_ui_cursor_show(cursor_x, cursor_y);
+    }
+}
+
+void app_ui_show_file_confirmation(const char *name, const char *message)
+{
+    uint8_t restore_cursor;
+    uint16_t cursor_x;
+    uint16_t cursor_y;
+
+    restore_cursor = g_cursor_visible;
+    cursor_x = g_cursor_x;
+    cursor_y = g_cursor_y;
+    app_ui_cursor_hide();
+    app_ui_draw_application_header("UNSAVED FILE CHANGES");
+    lcd_fill(80U, 120U, 720U, 360U, UI_COLOR_PANEL_DARK);
+    lcd_draw_rectangle(80U, 120U, 720U, 360U, UI_COLOR_MUTED);
+    app_ui_show_text(110U, 150U, 560U, 24U, 24U,
+                     message != NULL ? message : "UNSAVED CHANGES", YELLOW);
+    app_ui_show_text(110U, 200U, 560U, 24U, 24U,
+                     name != NULL ? name : "", WHITE);
+    app_ui_draw_file_button(110U, 270U, 170U, "SAVE", 1U);
+    app_ui_draw_file_button(315U, 270U, 170U, "DISCARD", 1U);
+    app_ui_draw_file_button(520U, 270U, 170U, "CANCEL", 1U);
+    if (restore_cursor)
+    {
+        app_ui_cursor_show(cursor_x, cursor_y);
+    }
+}
+
+app_ui_file_confirm_action_t app_ui_file_confirmation_action_at(uint16_t x,
+                                                                uint16_t y)
+{
+    if (y < 270U || y >= 270U + FILE_BUTTON_HEIGHT)
+    {
+        return APP_UI_FILE_CONFIRM_NONE;
+    }
+    if (x >= 110U && x < 280U) return APP_UI_FILE_CONFIRM_SAVE;
+    if (x >= 315U && x < 485U) return APP_UI_FILE_CONFIRM_DISCARD;
+    if (x >= 520U && x < 690U) return APP_UI_FILE_CONFIRM_CANCEL;
+    return APP_UI_FILE_CONFIRM_NONE;
+}
+
+/**
+ * @brief app_ui_files_row_at：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param x 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param y 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 int8_t app_ui_files_row_at(uint16_t x, uint16_t y)
 {
     uint16_t relative_y;
@@ -1996,6 +2936,15 @@ int8_t app_ui_files_row_at(uint16_t x, uint16_t y)
     return (int8_t)row;
 }
 
+/**
+ * @brief app_ui_files_action_at：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param x 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param y 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param content_view 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 app_ui_files_action_t app_ui_files_action_at(uint16_t x,
                                              uint16_t y,
                                              uint8_t content_view)
@@ -2006,19 +2955,23 @@ app_ui_files_action_t app_ui_files_action_at(uint16_t x,
         {
             return APP_UI_FILES_ACTION_NONE;
         }
-        if (x >= 40U && x < 190U)
+        if (x >= 20U && x < 160U)
         {
             return APP_UI_FILES_ACTION_EDIT;
         }
-        if (x >= 220U && x < 370U)
+        if (x >= 175U && x < 315U)
         {
             return APP_UI_FILES_ACTION_SAVE;
         }
-        if (x >= 400U && x < 550U)
+        if (x >= 330U && x < 470U)
+        {
+            return APP_UI_FILES_ACTION_RENAME;
+        }
+        if (x >= 485U && x < 625U)
         {
             return APP_UI_FILES_ACTION_DELETE;
         }
-        if (x >= 580U && x < 730U)
+        if (x >= 640U && x < 780U)
         {
             return APP_UI_FILES_ACTION_LIST;
         }
@@ -2056,21 +3009,48 @@ app_ui_files_action_t app_ui_files_action_at(uint16_t x,
     return APP_UI_FILES_ACTION_NONE;
 }
 
-void app_ui_show_monitor(const app_monitor_snapshot_t *snapshot)
+/**
+ * @brief app_ui_show_monitor：根据输入参数和当前状态绘制或更新对应显示内容。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param snapshot 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
+static uint8_t g_monitor_input_page;
+static uint8_t g_monitor_input_drawn;
+
+static void app_ui_draw_monitor_system_layout(void)
 {
     app_ui_draw_application_header("SYSTEM MONITOR");
     app_ui_draw_metric_panel(40U, 72U, "UPTIME");
     app_ui_draw_metric_panel(410U, 72U, "HEAP NOW / MIN (BYTES)");
     app_ui_draw_metric_panel(40U, 182U, "INPUT EVENTS");
-    app_ui_draw_metric_panel(410U, 182U, "DROP TOTAL / CRITICAL");
+    app_ui_draw_metric_panel(410U, 182U, "DROP TOTAL / SEC");
     app_ui_draw_metric_panel(40U, 292U, "INPUT QUEUE NOW / PEAK");
     app_ui_draw_metric_panel(410U, 292U, "STACK WORDS I/G/S/A/M + H/T");
     lcd_fill(40U, 378U, 759U, 459U, UI_COLOR_PANEL_DARK);
     lcd_draw_rectangle(40U, 378U, 759U, 459U, UI_COLOR_MUTED);
+    lcd_fill(550U, 8U, 650U, 39U, UI_COLOR_BUTTON);
+    lcd_draw_rectangle(550U, 8U, 650U, 39U, WHITE);
+    app_ui_show_centered(550U, 12U, 101U, 16U, "INPUT", WHITE);
+}
+
+void app_ui_show_monitor(const app_monitor_snapshot_t *snapshot)
+{
+    g_monitor_input_page = 0U;
+    g_monitor_input_drawn = 0U;
+    app_ui_draw_monitor_system_layout();
     app_ui_update_monitor(snapshot);
 }
 
-void app_ui_update_monitor(const app_monitor_snapshot_t *snapshot)
+/**
+ * @brief app_ui_update_monitor：使用最新数据更新缓存、硬件输出或界面显示状态。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param snapshot 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
+static void app_ui_update_monitor_system(const app_monitor_snapshot_t *snapshot)
 {
     char time_text[9];
     uint8_t restore_cursor;
@@ -2090,7 +3070,7 @@ void app_ui_update_monitor(const app_monitor_snapshot_t *snapshot)
     lcd_fill(54U, 110U, 374U, 148U, UI_COLOR_PANEL_DARK);
     lcd_fill(424U, 110U, 744U, 148U, UI_COLOR_PANEL_DARK);
     lcd_fill(54U, 220U, 374U, 258U, UI_COLOR_PANEL_DARK);
-    lcd_fill(424U, 220U, 744U, 258U, UI_COLOR_PANEL_DARK);
+    lcd_fill(424U, 220U, 744U, 268U, UI_COLOR_PANEL_DARK);
     lcd_fill(54U, 330U, 374U, 368U, UI_COLOR_PANEL_DARK);
     lcd_fill(424U, 330U, 744U, 368U, UI_COLOR_PANEL_DARK);
 
@@ -2105,7 +3085,10 @@ void app_ui_update_monitor(const app_monitor_snapshot_t *snapshot)
                     snapshot->critical_drop_count ? RED :
                     (snapshot->dropped_event_count ? YELLOW : GREEN));
     app_ui_show_text(570U, 226U, 24U, 24U, 24U, "/", UI_COLOR_MUTED);
-    app_ui_show_u32(598U, 226U, snapshot->critical_drop_count, 24U,
+    app_ui_show_u32(598U, 226U, snapshot->dropped_event_rate, 24U,
+                    snapshot->dropped_event_rate ? YELLOW : GREEN);
+    app_ui_show_text(434U, 252U, 40U, 16U, 16U, "CRIT", UI_COLOR_MUTED);
+    app_ui_show_u32(478U, 252U, snapshot->critical_drop_count, 16U,
                     snapshot->critical_drop_count ? RED : GREEN);
 
     app_ui_show_u32(64U, 336U, snapshot->queue_depth, 24U, WHITE);
@@ -2188,8 +3171,229 @@ void app_ui_update_monitor(const app_monitor_snapshot_t *snapshot)
     app_ui_show_u32(616U, 429U, snapshot->storage_error_count, 16U,
                     snapshot->storage_error_count ? RED : GREEN);
 
+
     if (restore_cursor)
     {
         app_ui_cursor_show(cursor_x, cursor_y);
     }
+}
+
+static void app_ui_show_monitor_input(const app_monitor_snapshot_t *snapshot)
+{
+    const char *mode;
+    const char *test;
+    uint16_t color;
+
+    mode = "NORMAL";
+    color = GREEN;
+    if (snapshot->scheduler_mode == 1U) { mode = "BUSY"; color = YELLOW; }
+    else if (snapshot->scheduler_mode == 2U) { mode = "PRESSURE"; color = YELLOW; }
+    else if (snapshot->scheduler_mode == 3U) { mode = "PROTECT"; color = RED; }
+    if (snapshot->input_test_mode != 0U && !snapshot->input_test_complete)
+    {
+        test = (snapshot->input_test_mode == 2U) ? "FLOOD RUNNING" :
+                                                    "CAPTURE RUNNING";
+    }
+    else if (snapshot->input_test_complete)
+    {
+        test = snapshot->input_test_passed ? "TEST PASS" : "TEST FAIL";
+    }
+    else
+    {
+        test = "TEST READY";
+    }
+
+    lcd_clear(UI_COLOR_BG);
+    app_ui_draw_application_header("INPUT SCHEDULER");
+    lcd_fill(550U, 8U, 650U, 39U, UI_COLOR_BUTTON);
+    lcd_draw_rectangle(550U, 8U, 650U, 39U, WHITE);
+    app_ui_show_centered(550U, 12U, 101U, 16U, "SYSTEM", WHITE);
+    app_ui_draw_metric_panel(40U, 72U, "RAW / SENT / MERGED");
+    app_ui_draw_metric_panel(410U, 72U, "QUEUE NOW / PEAK");
+    app_ui_draw_metric_panel(40U, 182U, "THROTTLED / EXPIRED");
+    app_ui_draw_metric_panel(410U, 182U, "LATENCY AVG / MAX (MS)");
+    app_ui_draw_metric_panel(40U, 292U, "SCHEDULER MODE / INTERVAL");
+    app_ui_draw_metric_panel(410U, 292U, "TEST STATUS");
+    lcd_fill(40U, 378U, 759U, 459U, UI_COLOR_PANEL_DARK);
+    lcd_draw_rectangle(40U, 378U, 759U, 459U, UI_COLOR_MUTED);
+    app_ui_show_text(64U, 116U, 40U, 24U, 24U, "RAW", UI_COLOR_MUTED);
+    app_ui_show_u32(110U, 116U, snapshot->raw_event_count, 24U, WHITE);
+    app_ui_show_text(64U, 140U, 48U, 16U, 16U, "SENT", UI_COLOR_MUTED);
+    app_ui_show_u32(120U, 140U, snapshot->input_event_count, 16U, GREEN);
+    app_ui_show_text(220U, 140U, 64U, 16U, 16U, "MERGED", UI_COLOR_MUTED);
+    app_ui_show_u32(290U, 140U, snapshot->producer_merged_count +
+                    snapshot->consumer_merged_count, 16U, CYAN);
+    app_ui_show_u32(434U, 116U, snapshot->queue_depth, 24U, WHITE);
+    app_ui_show_text(500U, 116U, 24U, 24U, 24U, "/", UI_COLOR_MUTED);
+    app_ui_show_u32(528U, 116U, snapshot->queue_high_water, 24U, WHITE);
+    app_ui_show_text(434U, 140U, 100U, 16U, 16U, "RESERVED 8", UI_COLOR_MUTED);
+    app_ui_show_u32(64U, 226U, snapshot->throttled_move_count, 24U, YELLOW);
+    app_ui_show_text(64U, 248U, 48U, 16U, 16U, "EXPIRED", UI_COLOR_MUTED);
+    app_ui_show_u32(130U, 248U, snapshot->expired_move_count, 16U,
+                    snapshot->expired_move_count ? RED : GREEN);
+    app_ui_show_u32(434U, 226U, snapshot->latency_average_ms, 24U,
+                    snapshot->latency_average_ms > 20U ? YELLOW : GREEN);
+    app_ui_show_text(540U, 226U, 24U, 24U, 24U, "/", UI_COLOR_MUTED);
+    app_ui_show_u32(570U, 226U, snapshot->latency_max_ms, 24U,
+                    snapshot->latency_max_ms > 100U ? RED : WHITE);
+    app_ui_show_text(64U, 336U, 72U, 16U, 16U, mode, color);
+    app_ui_show_text(170U, 336U, 48U, 16U, 16U, "INTERVAL", UI_COLOR_MUTED);
+    app_ui_show_u32(228U, 336U, snapshot->move_interval_ms, 16U, WHITE);
+    app_ui_show_text(264U, 336U, 24U, 16U, 16U, "ms", UI_COLOR_MUTED);
+    app_ui_show_text(434U, 336U, 220U, 24U, 24U, test,
+                     snapshot->input_test_complete ?
+                         (snapshot->input_test_passed ? GREEN : RED) :
+                         UI_COLOR_ACCENT);
+    if (!snapshot->input_test_complete && snapshot->input_test_mode != 0U)
+    {
+        app_ui_show_u32(434U, 366U, snapshot->input_test_remaining_seconds,
+                        16U, UI_COLOR_ACCENT);
+        app_ui_show_text(460U, 366U, 16U, 16U, 16U, "s", UI_COLOR_MUTED);
+    }
+    lcd_fill(70U, 400U, 250U, 445U, UI_COLOR_BUTTON);
+    lcd_draw_rectangle(70U, 400U, 250U, 445U, WHITE);
+    app_ui_show_centered(70U, 414U, 181U, 16U, "CAPTURE 60S", WHITE);
+    lcd_fill(310U, 400U, 490U, 445U, UI_COLOR_BUTTON);
+    lcd_draw_rectangle(310U, 400U, 490U, 445U, WHITE);
+    app_ui_show_centered(310U, 414U, 181U, 16U, "FLOOD 10S", WHITE);
+    lcd_fill(550U, 400U, 730U, 445U, UI_COLOR_BUTTON);
+    lcd_draw_rectangle(550U, 400U, 730U, 445U, WHITE);
+    app_ui_show_centered(550U, 414U, 181U, 16U, "RESET STATS", WHITE);
+    g_monitor_input_drawn = 1U;
+}
+
+static void app_ui_update_monitor_input_values(const app_monitor_snapshot_t *snapshot)
+{
+    const char *mode;
+    const char *test;
+    uint16_t color;
+    uint8_t restore_cursor;
+    uint16_t cursor_x;
+    uint16_t cursor_y;
+
+    restore_cursor = g_cursor_visible;
+    cursor_x = g_cursor_x;
+    cursor_y = g_cursor_y;
+    app_ui_cursor_hide();
+
+    mode = "NORMAL"; color = GREEN;
+    if (snapshot->scheduler_mode == 1U) { mode = "BUSY"; color = YELLOW; }
+    else if (snapshot->scheduler_mode == 2U) { mode = "PRESSURE"; color = YELLOW; }
+    else if (snapshot->scheduler_mode == 3U) { mode = "PROTECT"; color = RED; }
+    test = "TEST READY";
+    if (snapshot->input_test_mode != 0U && !snapshot->input_test_complete)
+        test = (snapshot->input_test_mode == 2U) ? "FLOOD RUNNING" : "CAPTURE RUNNING";
+    else if (snapshot->input_test_complete)
+        test = snapshot->input_test_passed ? "TEST PASS" : "TEST FAIL";
+
+    lcd_fill(54U, 108U, 374U, 159U, UI_COLOR_PANEL_DARK);
+    lcd_fill(424U, 108U, 744U, 159U, UI_COLOR_PANEL_DARK);
+    lcd_fill(54U, 218U, 374U, 269U, UI_COLOR_PANEL_DARK);
+    lcd_fill(424U, 218U, 744U, 269U, UI_COLOR_PANEL_DARK);
+    lcd_fill(54U, 328U, 374U, 377U, UI_COLOR_PANEL_DARK);
+    lcd_fill(424U, 328U, 744U, 377U, UI_COLOR_PANEL_DARK);
+    app_ui_show_text(64U, 116U, 40U, 24U, 24U, "RAW", UI_COLOR_MUTED);
+    app_ui_show_u32(110U, 116U, snapshot->raw_event_count, 24U, WHITE);
+    app_ui_show_text(64U, 140U, 48U, 16U, 16U, "SENT", UI_COLOR_MUTED);
+    app_ui_show_u32(120U, 140U, snapshot->input_event_count, 16U, GREEN);
+    app_ui_show_text(220U, 140U, 64U, 16U, 16U, "MERGED", UI_COLOR_MUTED);
+    app_ui_show_u32(290U, 140U, snapshot->producer_merged_count + snapshot->consumer_merged_count, 16U, CYAN);
+    app_ui_show_u32(434U, 116U, snapshot->queue_depth, 24U, WHITE);
+    app_ui_show_text(500U, 116U, 24U, 24U, 24U, "/", UI_COLOR_MUTED);
+    app_ui_show_u32(528U, 116U, snapshot->queue_high_water, 24U, WHITE);
+    app_ui_show_text(434U, 140U, 100U, 16U, 16U, "RESERVED 8", UI_COLOR_MUTED);
+    app_ui_show_u32(64U, 226U, snapshot->throttled_move_count, 24U, YELLOW);
+    app_ui_show_text(64U, 248U, 48U, 16U, 16U, "EXPIRED", UI_COLOR_MUTED);
+    app_ui_show_u32(130U, 248U, snapshot->expired_move_count, 16U, snapshot->expired_move_count ? RED : GREEN);
+    app_ui_show_u32(434U, 226U, snapshot->latency_average_ms, 24U, snapshot->latency_average_ms > 20U ? YELLOW : GREEN);
+    app_ui_show_text(540U, 226U, 24U, 24U, 24U, "/", UI_COLOR_MUTED);
+    app_ui_show_u32(570U, 226U, snapshot->latency_max_ms, 24U, snapshot->latency_max_ms > 100U ? RED : WHITE);
+    app_ui_show_text(64U, 336U, 72U, 16U, 16U, mode, color);
+    app_ui_show_text(170U, 336U, 48U, 16U, 16U, "INTERVAL", UI_COLOR_MUTED);
+    app_ui_show_u32(228U, 336U, snapshot->move_interval_ms, 16U, WHITE);
+    app_ui_show_text(264U, 336U, 24U, 16U, 16U, "ms", UI_COLOR_MUTED);
+    app_ui_show_text(434U, 328U, 220U, 24U, 24U, test, snapshot->input_test_complete ? (snapshot->input_test_passed ? GREEN : RED) : UI_COLOR_ACCENT);
+    if (!snapshot->input_test_complete && snapshot->input_test_mode != 0U)
+    {
+        app_ui_show_u32(434U, 356U, snapshot->input_test_remaining_seconds, 16U, UI_COLOR_ACCENT);
+        app_ui_show_text(460U, 356U, 16U, 16U, 16U, "s", UI_COLOR_MUTED);
+    }
+    if (restore_cursor)
+    {
+        app_ui_cursor_show(cursor_x, cursor_y);
+    }
+}
+
+void app_ui_update_monitor(const app_monitor_snapshot_t *snapshot)
+{
+    if (snapshot == NULL)
+    {
+        return;
+    }
+    if (g_monitor_input_page)
+    {
+        if (!g_monitor_input_drawn)
+            app_ui_show_monitor_input(snapshot);
+        else
+            app_ui_update_monitor_input_values(snapshot);
+    }
+    else
+    {
+        app_ui_update_monitor_system(snapshot);
+    }
+}
+
+void app_ui_monitor_set_input_page(uint8_t input_page,
+                                   const app_monitor_snapshot_t *snapshot)
+{
+    g_monitor_input_page = input_page ? 1U : 0U;
+    g_monitor_input_drawn = 0U;
+    if (snapshot != NULL)
+    {
+        if (g_monitor_input_page)
+        {
+            app_ui_show_monitor_input(snapshot);
+        }
+        else
+        {
+            app_ui_draw_monitor_system_layout();
+            app_ui_update_monitor_system(snapshot);
+        }
+    }
+}
+
+uint8_t app_ui_monitor_is_input_page(void)
+{
+    return g_monitor_input_page;
+}
+
+app_ui_monitor_action_t app_ui_monitor_action_at(uint16_t x, uint16_t y)
+{
+    if (!g_monitor_input_page && y >= 8U && y <= 39U &&
+        x >= 550U && x <= 650U)
+    {
+        return APP_UI_MONITOR_ACTION_PAGE;
+    }
+    if (g_monitor_input_page && y >= 8U && y <= 39U &&
+        x >= 550U && x <= 650U)
+    {
+        return APP_UI_MONITOR_ACTION_PAGE;
+    }
+    if (!g_monitor_input_page || y < 400U || y > 445U)
+    {
+        return APP_UI_MONITOR_ACTION_NONE;
+    }
+    if (x >= 70U && x <= 250U)
+    {
+        return APP_UI_MONITOR_ACTION_CAPTURE;
+    }
+    if (x >= 310U && x <= 490U)
+    {
+        return APP_UI_MONITOR_ACTION_FLOOD;
+    }
+    if (x >= 550U && x <= 730U)
+    {
+        return APP_UI_MONITOR_ACTION_RESET;
+    }
+    return APP_UI_MONITOR_ACTION_NONE;
 }

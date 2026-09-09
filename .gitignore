@@ -1,0 +1,39 @@
+# Local editor settings
+.vscode/
+.idea/
+*.code-workspace
+
+# Keil per-user state
+*.uvguix.*
+*.uvoptx
+
+# Keil/compiler output
+Output/
+Objects/
+Listings/
+*.o
+*.d
+*.dep
+*.lnp
+*.lst
+*.map
+*.axf
+*.elf
+*.bin
+*.htm
+*.html
+*.log
+
+# Temporary snapshots and OS files
+.tmp/
+*.tmp
+*.bak
+*.orig
+*.user
+.DS_Store
+Thumbs.db
+
+# Historical folders retained in earlier commits only
+/Handoff/
+/STABILITY_PROTECTION_2026-09-01.md
+/atk_h743.sct

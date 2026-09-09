@@ -1,3 +1,11 @@
+/**
+ * @file app_runtime.c
+ * @brief 驱动启动、登录、桌面、锁屏和应用切换等主状态机。
+ * @details 这是 app_runtime 模块的实现文件（App/app_runtime.c）。调用本模块接口时，应遵守
+ *          相应外设初始化顺序、缓冲区有效期和 FreeRTOS 任务上下文约束。
+ * @note 文件采用 UTF-8 编码；硬件资源分配以板级原理图和工程配置为准。
+ */
+
 #include "app_runtime.h"
 
 #include <stdint.h>
@@ -17,12 +25,14 @@
 #include "app_ui.h"
 #include "task.h"
 
+/** @name 编译期配置与硬件参数：集中定义本模块使用的常量和宏。 */
 #define APP_BOOT_TIME_MS          2000U
 #define APP_LOCK_TIME_MS          10000U
 #define APP_MAX_LOGIN_FAILURES    3U
 #define APP_PASSWORD_LENGTH       4U
 #define APP_MONITOR_UPDATE_MS     500U
 
+/** @brief 模块数据类型：描述本模块维护的状态、配置或数据快照。 */
 typedef struct
 {
     app_state_t state;
@@ -45,6 +55,13 @@ typedef struct
 
 static const char g_password[APP_PASSWORD_LENGTH] = {'1', '2', '3', '4'};
 
+/**
+ * @brief app_runtime_clock_seconds：优先读取 RTC 当日秒数，并在 RTC 不可用时退化为系统节拍时间。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param now 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static uint32_t app_runtime_clock_seconds(TickType_t now)
 {
     if (app_rtc_is_available())
@@ -54,6 +71,13 @@ static uint32_t app_runtime_clock_seconds(TickType_t now)
     return (uint32_t)(now / configTICK_RATE_HZ);
 }
 
+/**
+ * @brief app_runtime_application_name：把应用编号转换为日志使用的可读应用名称。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param application 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static const char *app_runtime_application_name(int8_t application)
 {
     switch (application)
@@ -81,11 +105,26 @@ static const char *app_runtime_application_name(int8_t application)
     }
 }
 
+/**
+ * @brief app_runtime_deadline_reached：检查函数名所描述的条件是否成立，并返回明确的判断结果。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param now 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param deadline 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static uint8_t app_runtime_deadline_reached(TickType_t now, TickType_t deadline)
 {
     return ((int32_t)(now - deadline) >= 0) ? 1U : 0U;
 }
 
+/**
+ * @brief app_runtime_password_matches：逐位比较已输入 PIN 与预设密码，并返回认证结果。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param runtime 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static uint8_t app_runtime_password_matches(const app_runtime_state_t *runtime)
 {
     uint8_t index;
@@ -106,6 +145,14 @@ static uint8_t app_runtime_password_matches(const app_runtime_state_t *runtime)
     return 1U;
 }
 
+/**
+ * @brief app_runtime_enter_login：切换到目标运行状态，并同步清理或初始化该状态关联的数据与界面。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param runtime 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param context 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 static void app_runtime_enter_login(app_runtime_state_t *runtime,
                                     const app_runtime_context_t *context)
 {
@@ -117,6 +164,15 @@ static void app_runtime_enter_login(app_runtime_state_t *runtime,
     app_ui_update_login(0U, runtime->failed_attempts, "ENTER PIN", 0U);
 }
 
+/**
+ * @brief app_runtime_enter_desktop：切换到目标运行状态，并同步清理或初始化该状态关联的数据与界面。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param runtime 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param context 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param now 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 static void app_runtime_enter_desktop(app_runtime_state_t *runtime,
                                       const app_runtime_context_t *context,
                                       TickType_t now)
@@ -139,6 +195,15 @@ static void app_runtime_enter_desktop(app_runtime_state_t *runtime,
     app_ui_move_cursor(runtime->cursor_x, runtime->cursor_y);
 }
 
+/**
+ * @brief app_runtime_enter_application：切换到目标运行状态，并同步清理或初始化该状态关联的数据与界面。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param runtime 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param application 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param now 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 static void app_runtime_enter_application(app_runtime_state_t *runtime,
                                           int8_t application,
                                           TickType_t now)
@@ -186,6 +251,15 @@ static void app_runtime_enter_application(app_runtime_state_t *runtime,
     }
 }
 
+/**
+ * @brief app_runtime_submit_pin：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param runtime 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param context 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param now 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 static void app_runtime_submit_pin(app_runtime_state_t *runtime,
                                    const app_runtime_context_t *context,
                                    TickType_t now)
@@ -223,6 +297,16 @@ static void app_runtime_submit_pin(app_runtime_state_t *runtime,
     }
 }
 
+/**
+ * @brief app_runtime_handle_login_event：解析并处理当前事件或数据，根据结果推进模块状态。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param runtime 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param context 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param event 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param now 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 static void app_runtime_handle_login_event(app_runtime_state_t *runtime,
                                            const app_runtime_context_t *context,
                                            const app_input_event_t *event,
@@ -267,6 +351,14 @@ static void app_runtime_handle_login_event(app_runtime_state_t *runtime,
     }
 }
 
+/**
+ * @brief app_runtime_handle_mouse_connection：解析并处理当前事件或数据，根据结果推进模块状态。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param runtime 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param event 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static uint8_t app_runtime_handle_mouse_connection(
     app_runtime_state_t *runtime,
     const app_input_event_t *event)
@@ -307,6 +399,13 @@ static uint8_t app_runtime_handle_mouse_connection(
     return 1U;
 }
 
+/**
+ * @brief app_runtime_event_can_wake：判断当前输入事件能否唤醒已关闭的屏幕。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param event 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 static uint8_t app_runtime_event_can_wake(const app_input_event_t *event)
 {
     return (event->type == APP_INPUT_EVENT_DOWN ||
@@ -315,6 +414,15 @@ static uint8_t app_runtime_event_can_wake(const app_input_event_t *event)
             event->type == APP_INPUT_EVENT_BACK) ? 1U : 0U;
 }
 
+/**
+ * @brief app_runtime_handle_desktop_event：解析并处理当前事件或数据，根据结果推进模块状态。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param runtime 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param event 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param now 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 static void app_runtime_handle_desktop_event(app_runtime_state_t *runtime,
                                              const app_input_event_t *event,
                                              TickType_t now)
@@ -330,8 +438,9 @@ static void app_runtime_handle_desktop_event(app_runtime_state_t *runtime,
         return;
     }
 
-    if (event->type == APP_INPUT_EVENT_DOWN ||
-        event->type == APP_INPUT_EVENT_MOVE)
+    if (event->source != APP_INPUT_SOURCE_TEST &&
+        (event->type == APP_INPUT_EVENT_DOWN ||
+         event->type == APP_INPUT_EVENT_MOVE))
     {
         runtime->cursor_x = event->x;
         runtime->cursor_y = event->y;
@@ -356,11 +465,55 @@ static void app_runtime_handle_desktop_event(app_runtime_state_t *runtime,
     }
 }
 
+/**
+ * @brief app_runtime_handle_application_event：解析并处理当前事件或数据，根据结果推进模块状态。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param runtime 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param context 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param event 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param now 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 static void app_runtime_handle_application_event(app_runtime_state_t *runtime,
                                                  const app_runtime_context_t *context,
                                                  const app_input_event_t *event,
                                                  TickType_t now)
 {
+    if (runtime->active_application == APP_UI_APP_MONITOR &&
+        event->type == APP_INPUT_EVENT_DOWN)
+    {
+        app_ui_monitor_action_t action;
+
+        action = app_ui_monitor_action_at(event->x, event->y);
+        if (action == APP_UI_MONITOR_ACTION_CAPTURE)
+        {
+            (void)app_input_test_start(APP_INPUT_TEST_CAPTURE);
+            app_logs_add(APP_LOG_LEVEL_INFO, "INPUT", "60S CAPTURE STARTED");
+            return;
+        }
+        if (action == APP_UI_MONITOR_ACTION_PAGE)
+        {
+            app_monitor_snapshot_t snapshot;
+            app_monitor_get_snapshot(&snapshot);
+            app_ui_monitor_set_input_page(
+                app_ui_monitor_is_input_page() ? 0U : 1U, &snapshot);
+            return;
+        }
+        if (action == APP_UI_MONITOR_ACTION_FLOOD)
+        {
+            (void)app_input_test_start(APP_INPUT_TEST_FLOOD);
+            app_logs_add(APP_LOG_LEVEL_WARNING, "INPUT", "10S FLOOD TEST STARTED");
+            return;
+        }
+        if (action == APP_UI_MONITOR_ACTION_RESET)
+        {
+            app_input_reset_stats();
+            app_logs_add(APP_LOG_LEVEL_INFO, "INPUT", "INPUT STATS RESET");
+            return;
+        }
+    }
+
     if (event->type == APP_INPUT_EVENT_DOWN &&
         app_ui_application_sleep_button_at(event->x, event->y))
     {
@@ -370,7 +523,8 @@ static void app_runtime_handle_application_event(app_runtime_state_t *runtime,
         return;
     }
 
-    if ((runtime->active_application != APP_UI_APP_DRAW ||
+    if (event->source != APP_INPUT_SOURCE_TEST &&
+        (runtime->active_application != APP_UI_APP_DRAW ||
          event->source == APP_INPUT_SOURCE_MOUSE) &&
         (event->type == APP_INPUT_EVENT_DOWN ||
          event->type == APP_INPUT_EVENT_MOVE))
@@ -386,10 +540,18 @@ static void app_runtime_handle_application_event(app_runtime_state_t *runtime,
     {
         if (runtime->active_application == APP_UI_APP_FILES)
         {
+            if (app_files_handle_back())
+            {
+                return;
+            }
             app_files_close();
         }
         else if (runtime->active_application == APP_UI_APP_DRAW)
         {
+            if (app_draw_handle_back())
+            {
+                return;
+            }
             app_draw_close();
         }
         else if (runtime->active_application == APP_UI_APP_MUSIC)
@@ -432,6 +594,15 @@ static void app_runtime_handle_application_event(app_runtime_state_t *runtime,
     }
 }
 
+/**
+ * @brief app_runtime_update：使用最新数据更新缓存、硬件输出或界面显示状态。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param runtime 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param context 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param now 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 static void app_runtime_update(app_runtime_state_t *runtime,
                                const app_runtime_context_t *context,
                                TickType_t now)
@@ -443,6 +614,16 @@ static void app_runtime_update(app_runtime_state_t *runtime,
     app_monitor_snapshot_t snapshot;
 
     app_files_update();
+    if (runtime->state == APP_STATE_APPLICATION &&
+        runtime->active_application == APP_UI_APP_FILES &&
+        app_files_take_close_request())
+    {
+        app_files_close();
+        app_logs_add(APP_LOG_LEVEL_INFO, "DESKTOP", "APPLICATION CLOSED");
+        runtime->selected_icon = runtime->active_application;
+        app_runtime_enter_desktop(runtime, context, now);
+        return;
+    }
     app_draw_update();
     app_music_update();
     app_logs_update();
@@ -507,6 +688,14 @@ static void app_runtime_update(app_runtime_state_t *runtime,
     }
 }
 
+/**
+ * @brief AppRuntimeTask：作为 FreeRTOS 任务入口，循环处理事件、周期工作和运行状态。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param argument 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ * @warning 该入口具有特定中断或任务上下文，禁止执行不符合该上下文约束的操作。
+ */
 void AppRuntimeTask(void *argument)
 {
     const app_runtime_context_t *context;
@@ -557,13 +746,13 @@ void AppRuntimeTask(void *argument)
     while (1)
     {
         app_health_beat(APP_HEALTH_RUNTIME);
-        if (xQueueReceive(context->event_queue, &event,
-                          pdMS_TO_TICKS(50U)) == pdPASS)
+        if (app_input_receive_event(context->event_queue, &event,
+                                    pdMS_TO_TICKS(50U)) == pdPASS)
         {
             now = xTaskGetTickCount();
             if (app_runtime_handle_mouse_connection(&runtime, &event))
             {
-                /* Link-state notifications do not count as user activity. */
+
             }
             else if (app_screen_is_off())
             {

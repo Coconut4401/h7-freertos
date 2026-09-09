@@ -1,68 +1,100 @@
-﻿
- 
+/**
+ * @file usart.c
+ * @brief 初始化调试串口，处理接收数据并提供标准输出重定向。
+ * @details 这是 usart 模块的实现文件（Drivers/SYSTEM/usart/usart.c）。调用本模块接口时，应遵守
+ *          相应外设初始化顺序、缓冲区有效期和 FreeRTOS 任务上下文约束。
+ * @note 文件采用 UTF-8 编码；硬件资源分配以板级原理图和工程配置为准。
+ */
+
 #include "./SYSTEM/sys/sys.h"
 #include "./SYSTEM/usart/usart.h"
 
-
-/* 如果使用os,则包括下面的头文件即可. */
 #if SYS_SUPPORT_OS
-#include "os.h"   /* os 使用 */
+#include "os.h"
 #endif
 
-/******************************************************************************************/
-/* 加入以下代码, 支持printf函数, 而不需要选择use MicroLIB */
-
 #if 1
-#if (__ARMCC_VERSION >= 6010050)            /* 使用AC6编译器时 */
-__asm(".global __use_no_semihosting\n\t");  /* 声明不使用半主机模式 */
-__asm(".global __ARM_use_no_argv \n\t");    /* AC6下需要声明main函数为无参数格式，否则部分例程可能出现半主机模式 */
+#if (__ARMCC_VERSION >= 6010050)
+__asm(".global __use_no_semihosting\n\t");
+__asm(".global __ARM_use_no_argv \n\t");
 
 #else
-/* 使用AC5编译器时, 要在这里定义__FILE 和 不使用半主机模式 */
+
 #pragma import(__use_no_semihosting)
 
 struct __FILE
 {
     int handle;
-    /* Whatever you require here. If the only file you are using is */
-    /* standard output using printf() for debugging, no file handling */
-    /* is required. */
+
 };
 
 #endif
 
-/* 不使用半主机模式，至少需要重定义_ttywrch\_sys_exit\_sys_command_string函数,以同时兼容AC6和AC5模式 */
+/**
+ * @brief _ttywrch：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param ch 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 int _ttywrch(int ch)
 {
     ch = ch;
     return ch;
 }
 
-/* 定义_sys_exit()以避免使用半主机模式 */
+/**
+ * @brief _sys_exit：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param x 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 void _sys_exit(int x)
 {
     x = x;
 }
 
+/**
+ * @brief _sys_command_string：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param cmd 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param len 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 char *_sys_command_string(char *cmd, int len)
 {
     return NULL;
 }
 
-/* FILE 在 stdio.h里面定义. */
 FILE __stdout;
 
-/* 重定义fputc函数, printf函数最终会通过调用fputc输出字符串到串口 */
+/**
+ * @brief fputc：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param ch 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param f 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 int fputc(int ch, FILE *f)
 {
-    while ((USART_UX->ISR & 0X40) == 0);    /* 等待上一个字符发送完成 */
+    while ((USART_UX->ISR & 0X40) == 0);
 
-    USART_UX->TDR = (uint8_t)ch;            /* 将要发送的字符 ch 写入到DR寄存器 */
+    USART_UX->TDR = (uint8_t)ch;
     return ch;
 }
 #endif
-/******************************************************************************************/
 
+/**
+ * @brief usart_tx_write：把调用方数据写入目标寄存器、缓冲区或模块状态。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param data 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param length 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
+ */
 void usart_tx_write(const uint8_t *data, uint16_t length)
 {
     uint16_t index;
@@ -84,14 +116,20 @@ void usart_tx_write(const uint8_t *data, uint16_t length)
     }
 }
 
-
-#if USART_EN_RX     /* 如果使能了接收 */
+#if USART_EN_RX
 
 static uint8_t g_usart_rx_ring[USART_RX_RING_SIZE];
 static volatile uint16_t g_usart_rx_head;
 static volatile uint16_t g_usart_rx_tail;
 static volatile uint32_t g_usart_rx_dropped;
 
+/**
+ * @brief usart_rx_read_byte：读取指定寄存器、缓冲区或模块状态，并把结果提供给调用方。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param data 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 uint8_t usart_rx_read_byte(uint8_t *data)
 {
     uint16_t tail;
@@ -113,20 +151,34 @@ uint8_t usart_rx_read_byte(uint8_t *data)
     return 1U;
 }
 
+/**
+ * @brief usart_rx_reset：清除已有状态或复位目标设备，使其回到约定的初始状态。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
+ */
 void usart_rx_reset(void)
 {
     g_usart_rx_tail = g_usart_rx_head;
 }
 
+/**
+ * @brief usart_rx_get_dropped_count：读取指定寄存器、缓冲区或模块状态，并把结果提供给调用方。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
+ */
 uint32_t usart_rx_get_dropped_count(void)
 {
     return g_usart_rx_dropped;
 }
 
 /**
- * @brief       串口X中断服务函数
- * @param       无
- * @retval      无
+ * @brief USART_UX_IRQHandler：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @return 无返回值。
+ * @warning 该入口具有特定中断或任务上下文，禁止执行不符合该上下文约束的操作。
  */
 void USART_UX_IRQHandler(void)
 {
@@ -155,59 +207,43 @@ void USART_UX_IRQHandler(void)
 #endif
 
 /**
- * @brief       串口X初始化函数
- * @param       sclk: 串口X的时钟源频率(单位: MHz)
- *              串口1 和 串口6 的时钟源来自: rcc_pclk2 = 100Mhz
- *              串口2 - 5 / 7 / 8 的时钟源来自: rcc_pclk1 = 100Mhz
- * @note        注意: 必须设置正确的sclk, 否则串口波特率就会设置异常.
- * @param       baudrate: 波特率, 根据自己需要设置波特率值
- * @retval      无
+ * @brief usart_init：按依赖顺序配置硬件或模块状态，为后续访问建立有效运行环境。
+ * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
+ *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
+ * @param sclk 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @param baudrate 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
+ * @return 无返回值。
  */
 void usart_init(uint32_t sclk, uint32_t baudrate)
 {
     uint32_t temp;
-    /* IO 及 时钟配置 */
-    USART_TX_GPIO_CLK_ENABLE(); /* 使能串口TX脚时钟 */
-    USART_RX_GPIO_CLK_ENABLE(); /* 使能串口RX脚时钟 */
-    USART_UX_CLK_ENABLE();      /* 使能串口时钟 */
+
+    USART_TX_GPIO_CLK_ENABLE();
+    USART_RX_GPIO_CLK_ENABLE();
+    USART_UX_CLK_ENABLE();
 
     sys_gpio_set(USART_TX_GPIO_PORT, USART_TX_GPIO_PIN,
-                 SYS_GPIO_MODE_AF, SYS_GPIO_OTYPE_PP, SYS_GPIO_SPEED_MID, SYS_GPIO_PUPD_PU);/* 串口TX脚 模式设置 */
+                 SYS_GPIO_MODE_AF, SYS_GPIO_OTYPE_PP, SYS_GPIO_SPEED_MID, SYS_GPIO_PUPD_PU);
 
     sys_gpio_set(USART_RX_GPIO_PORT, USART_RX_GPIO_PIN,
-                 SYS_GPIO_MODE_AF, SYS_GPIO_OTYPE_PP, SYS_GPIO_SPEED_MID, SYS_GPIO_PUPD_PU);/* 串口RX脚 模式设置 */
+                 SYS_GPIO_MODE_AF, SYS_GPIO_OTYPE_PP, SYS_GPIO_SPEED_MID, SYS_GPIO_PUPD_PU);
 
-    sys_gpio_af_set(GPIOA, USART_TX_GPIO_PIN, USART_TX_GPIO_AF);   /* TX脚 复用功能选择, 必须设置正确 */
-    sys_gpio_af_set(GPIOA, USART_RX_GPIO_PIN, USART_RX_GPIO_AF);   /* RX脚 复用功能选择, 必须设置正确 */
+    sys_gpio_af_set(GPIOA, USART_TX_GPIO_PIN, USART_TX_GPIO_AF);
+    sys_gpio_af_set(GPIOA, USART_RX_GPIO_PIN, USART_RX_GPIO_AF);
 
-    temp = (sclk * 1000000 + baudrate / 2) / baudrate;  /* 得到USARTDIV@OVER8 = 0, 采用四舍五入计算 */
-    /* 波特率设置 */
-    USART_UX->BRR = temp;       /* 波特率设置@OVER8 = 0 */
-    USART_UX->CR1 = 0;          /* 清零CR1寄存器 */
-    USART_UX->CR1 |= 0 << 28;   /* 设置M1 = 0 */
-    USART_UX->CR1 |= 0 << 12;   /* 设置M0 = 0 & M1 = 0, 选择8位字长 */
-    USART_UX->CR1 |= 0 << 15;   /* 设置OVER8 = 0, 16倍过采样 */
-    USART_UX->CR1 |= 1 << 3;    /* 串口发送使能 */
-#if USART_EN_RX  /* 如果使能了接收 */
-    /* 使能接收中断 */
-    USART_UX->CR1 |= 1 << 2;    /* 串口接收使能 */
-    USART_UX->CR1 |= 1 << 5;    /* 接收缓冲区非空中断使能 */
-    sys_nvic_init(6, 0, USART_UX_IRQn, 4); /* FreeRTOS-compatible priority grouping. */
+    temp = (sclk * 1000000 + baudrate / 2) / baudrate;
+
+    USART_UX->BRR = temp;
+    USART_UX->CR1 = 0;
+    USART_UX->CR1 |= 0 << 28;
+    USART_UX->CR1 |= 0 << 12;
+    USART_UX->CR1 |= 0 << 15;
+    USART_UX->CR1 |= 1 << 3;
+#if USART_EN_RX
+
+    USART_UX->CR1 |= 1 << 2;
+    USART_UX->CR1 |= 1 << 5;
+    sys_nvic_init(6, 0, USART_UX_IRQn, 4);
 #endif
-    USART_UX->CR1 |= 1 << 0;    /* 串口使能 */
+    USART_UX->CR1 |= 1 << 0;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
