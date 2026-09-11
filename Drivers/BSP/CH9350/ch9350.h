@@ -33,6 +33,7 @@ typedef struct
     ch9350_mouse_report_t mouse_report;
     uint8_t connection_changed;
     uint8_t mouse_connected;
+    uint8_t report_rebaseline;
 } ch9350_event_t;
 
 typedef struct
@@ -44,6 +45,7 @@ typedef struct
     uint32_t discarded_frame_count;
     uint32_t sync_error_count;
     uint32_t uart_dropped_count;
+    uint32_t uart_error_count;
     uint8_t connection_known;
     uint8_t mouse_connected;
     uint8_t last_state_value;
@@ -72,5 +74,6 @@ uint8_t ch9350_read_event(ch9350_event_t *event);
  * @return 无返回值。
  */
 void ch9350_get_stats(ch9350_stats_t *stats);
+void ch9350_reset_stats(void);
 
 #endif

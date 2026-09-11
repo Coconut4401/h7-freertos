@@ -10,6 +10,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "FreeRTOS.h"
@@ -46,6 +47,7 @@ typedef struct
     uint16_t next_file_number;
     uint16_t content_length;
     uint32_t open_file_size;
+    uint32_t content_offset;
     uint8_t dirty;
     uint8_t delete_armed;
     uint8_t read_only;
@@ -85,6 +87,8 @@ static void app_files_make_new_name(char name[APP_STORAGE_NAME_LENGTH]);
 static void app_files_redraw(void);
 static BaseType_t app_files_submit(app_storage_request_t *request,
                                    const char *busy_status);
+static void app_files_request_content(uint32_t offset);
+static void app_files_set_content_status(void);
 
 /**
  * @brief app_files_copy_text：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
@@ -686,8 +690,6 @@ static void app_files_create(void)
  */
 static void app_files_read_selected(void)
 {
-    app_storage_request_t request;
-
     if (g_files.selected_file < 0 ||
         (uint8_t)g_files.selected_file >= g_files.file_count)
     {
@@ -696,12 +698,50 @@ static void app_files_read_selected(void)
         return;
     }
 
-    memset(&request, 0, sizeof(request));
-    request.operation = APP_STORAGE_OP_READ;
-    app_files_copy_text(request.name, sizeof(request.name),
+    app_files_copy_text(g_files.open_name, sizeof(g_files.open_name),
                         g_files.files[(uint8_t)g_files.selected_file].name);
     g_files.delete_armed = 0U;
+    app_files_request_content(0U);
+}
+
+static void app_files_request_content(uint32_t offset)
+{
+    app_storage_request_t request;
+
+    memset(&request, 0, sizeof(request));
+    request.operation = APP_STORAGE_OP_READ;
+    request.data_offset = offset;
+    app_files_copy_text(request.name, sizeof(request.name), g_files.open_name);
     app_files_submit(&request, "READING FILE FROM SD CARD");
+}
+
+static void app_files_set_content_status(void)
+{
+    uint32_t first_byte;
+    uint32_t last_byte;
+
+    if (g_files.content_length == 0U)
+    {
+        app_files_set_status("EMPTY FILE");
+        return;
+    }
+
+    first_byte = g_files.content_offset + 1U;
+    last_byte = g_files.content_offset + g_files.content_length;
+    if (g_files.open_file_size >= APP_STORAGE_CONTENT_SIZE)
+    {
+        (void)snprintf(g_files.status, sizeof(g_files.status),
+                       "BYTES %lu-%lu / %lu - SCROLL",
+                       (unsigned long)first_byte,
+                       (unsigned long)last_byte,
+                       (unsigned long)g_files.open_file_size);
+    }
+    else
+    {
+        app_files_set_status(g_files.read_only ?
+                             "VIEW ONLY - FILE IS BINARY" :
+                             "FILE READ FROM SD CARD");
+    }
 }
 
 /**
@@ -917,14 +957,13 @@ static void app_files_handle_response(const app_storage_response_t *response)
             g_files.content[APP_STORAGE_CONTENT_SIZE - 1U] = '\0';
             g_files.content_length = response->content_length;
             g_files.open_file_size = response->file_size;
+            g_files.content_offset = response->data_offset;
             g_files.dirty = 0U;
             g_files.delete_armed = 0U;
             g_files.read_only = (!app_files_is_text_file(response->name) ||
                                  response->file_size >= APP_STORAGE_CONTENT_SIZE) ? 1U : 0U;
             g_files.view = APP_FILES_VIEW_CONTENT;
-            app_files_set_status(g_files.read_only ?
-                                 "VIEW ONLY - FILE IS BINARY OR TOO LARGE" :
-                                 "FILE READ FROM SD CARD");
+            app_files_set_content_status();
             app_logs_add(APP_LOG_LEVEL_INFO, "FILES", "FILE OPENED");
             if (g_files.edit_after_read)
             {
@@ -1152,6 +1191,23 @@ void app_files_handle_event(const app_input_event_t *event)
     {
         if (g_files.view == APP_FILES_VIEW_CONTENT)
         {
+            uint32_t next_offset;
+
+            if (event->wheel < 0 &&
+                g_files.content_offset + g_files.content_length <
+                    g_files.open_file_size)
+            {
+                next_offset = g_files.content_offset + g_files.content_length;
+                app_files_request_content(next_offset);
+            }
+            else if (event->wheel > 0 && g_files.content_offset > 0U)
+            {
+                next_offset = (g_files.content_offset >=
+                               APP_STORAGE_CONTENT_SIZE - 1U) ?
+                              g_files.content_offset -
+                                  (APP_STORAGE_CONTENT_SIZE - 1U) : 0U;
+                app_files_request_content(next_offset);
+            }
             return;
         }
         page_count = (uint8_t)((g_files.file_count +

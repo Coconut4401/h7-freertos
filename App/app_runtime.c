@@ -316,7 +316,8 @@ static void app_runtime_handle_login_event(app_runtime_state_t *runtime,
 
     if (event->source == APP_INPUT_SOURCE_MOUSE &&
         (event->type == APP_INPUT_EVENT_DOWN ||
-         event->type == APP_INPUT_EVENT_MOVE))
+         event->type == APP_INPUT_EVENT_MOVE ||
+         event->type == APP_INPUT_EVENT_BACK))
     {
         runtime->cursor_x = event->x;
         runtime->cursor_y = event->y;
@@ -440,7 +441,8 @@ static void app_runtime_handle_desktop_event(app_runtime_state_t *runtime,
 
     if (event->source != APP_INPUT_SOURCE_TEST &&
         (event->type == APP_INPUT_EVENT_DOWN ||
-         event->type == APP_INPUT_EVENT_MOVE))
+         event->type == APP_INPUT_EVENT_MOVE ||
+         event->type == APP_INPUT_EVENT_BACK))
     {
         runtime->cursor_x = event->x;
         runtime->cursor_y = event->y;
@@ -527,7 +529,8 @@ static void app_runtime_handle_application_event(app_runtime_state_t *runtime,
         (runtime->active_application != APP_UI_APP_DRAW ||
          event->source == APP_INPUT_SOURCE_MOUSE) &&
         (event->type == APP_INPUT_EVENT_DOWN ||
-         event->type == APP_INPUT_EVENT_MOVE))
+         event->type == APP_INPUT_EVENT_MOVE ||
+         event->type == APP_INPUT_EVENT_BACK))
     {
         runtime->cursor_x = event->x;
         runtime->cursor_y = event->y;

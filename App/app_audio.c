@@ -361,7 +361,7 @@ static void app_audio_close_file(void)
  * @param status 调用方提供的输入或输出参数；其取值范围和缓冲区有效期须符合接口约定。
  * @return 无返回值。
  */
-static void app_audio_stop(const char *status)
+static void app_audio_stop(const char *status, uint8_t completed)
 {
     app_audio_hardware_stop();
     app_audio_close_file();
@@ -370,6 +370,11 @@ static void app_audio_stop(const char *status)
     g_audio_paused_state = APP_AUDIO_STATE_STOPPED;
     memset(g_audio_half_source_bytes, 0, sizeof(g_audio_half_source_bytes));
     g_audio_test_frames_remaining = 0U;
+    g_audio_work.completed = completed ? 1U : 0U;
+    if (g_audio_work.completed)
+    {
+        g_audio_work.data_loaded = g_audio_work.data_size;
+    }
     if (g_audio_work.track_count > 0U)
     {
         app_audio_copy_text(g_audio_work.track_name,
@@ -399,6 +404,7 @@ static void app_audio_scan(void)
 
     app_audio_hardware_stop();
     app_audio_close_file();
+    g_audio_work.completed = 0U;
     memset(&request, 0, sizeof(request));
     request.operation = APP_STORAGE_OP_AUDIO_SCAN;
     g_audio_work.state = APP_AUDIO_STATE_STARTING;
@@ -429,6 +435,7 @@ static void app_audio_scan(void)
     g_audio_work.sample_rate = 0U;
     g_audio_work.data_size = 0U;
     g_audio_work.data_loaded = 0U;
+    g_audio_work.completed = 0U;
     if (response.track_count == 0U)
     {
         g_audio_work.track_name[0] = '\0';
@@ -564,6 +571,7 @@ static void app_audio_start_file(void)
         app_audio_publish("NO WAV TRACK SELECTED");
         return;
     }
+    g_audio_work.completed = 0U;
     app_audio_hardware_stop();
     app_audio_close_file();
     memset(&request, 0, sizeof(request));
@@ -584,12 +592,13 @@ static void app_audio_start_file(void)
     g_audio_work.sample_rate = response.sample_rate;
     g_audio_work.data_size = response.data_size;
     g_audio_work.data_loaded = 0U;
+    g_audio_work.completed = 0U;
     app_audio_copy_text(g_audio_work.track_name,
                         sizeof(g_audio_work.track_name),
                         g_audio_tracks[g_audio_work.selected_track]);
     if (!app_audio_hardware_configure(response.sample_rate))
     {
-        app_audio_stop("I2S SAMPLE RATE CONFIGURATION FAILED");
+        app_audio_stop("I2S SAMPLE RATE CONFIGURATION FAILED", 0U);
         g_audio_work.state = APP_AUDIO_STATE_ERROR;
         app_audio_publish(NULL);
         return;
@@ -602,7 +611,7 @@ static void app_audio_start_file(void)
     end_of_file = app_audio_fill_file_half(0U);
     if (end_of_file < 0)
     {
-        app_audio_stop("SD READ FAILED");
+        app_audio_stop("SD READ FAILED", 0U);
         return;
     }
     if (end_of_file > 0)
@@ -617,7 +626,7 @@ static void app_audio_start_file(void)
         end_of_file = app_audio_fill_file_half(1U);
         if (end_of_file < 0)
         {
-            app_audio_stop("SD READ FAILED");
+            app_audio_stop("SD READ FAILED", 0U);
             return;
         }
         if (end_of_file > 0)
@@ -640,6 +649,7 @@ static void app_audio_start_file(void)
  */
 static void app_audio_start_test(void)
 {
+    g_audio_work.completed = 0U;
     app_audio_hardware_stop();
     app_audio_close_file();
     g_audio_test_frames_remaining = AUDIO_TEST_RATE * AUDIO_TEST_SECONDS;
@@ -653,6 +663,7 @@ static void app_audio_start_test(void)
     g_audio_work.sample_rate = AUDIO_TEST_RATE;
     g_audio_work.data_size = AUDIO_TEST_RATE * AUDIO_TEST_SECONDS * 4U;
     g_audio_work.data_loaded = 0U;
+    g_audio_work.completed = 0U;
     app_audio_copy_text(g_audio_work.track_name,
                         sizeof(g_audio_work.track_name), "440HZ TEST");
     if (!app_audio_hardware_configure(AUDIO_TEST_RATE))
@@ -702,7 +713,7 @@ static void app_audio_service_half(uint8_t half)
     g_audio_half_source_bytes[half] = 0U;
     if ((g_audio_stop_after_half & half_mask) != 0U)
     {
-        app_audio_stop("PLAYBACK COMPLETE");
+        app_audio_stop("PLAYBACK COMPLETE", 1U);
         app_logs_add(APP_LOG_LEVEL_INFO, "AUDIO", "PLAYBACK COMPLETE");
         return;
     }
@@ -719,7 +730,7 @@ static void app_audio_service_half(uint8_t half)
         end_of_file = app_audio_fill_file_half(half);
         if (end_of_file < 0)
         {
-            app_audio_stop("SD READ FAILED DURING PLAYBACK");
+            app_audio_stop("SD READ FAILED DURING PLAYBACK", 0U);
         }
         else if (end_of_file > 0)
         {
@@ -754,7 +765,7 @@ static void app_audio_seek(int8_t direction)
     if (block_align == 0U || g_audio_work.sample_rate == 0U ||
         g_audio_work.data_size < block_align)
     {
-        app_audio_stop("INVALID WAV SEEK BOUNDARY");
+        app_audio_stop("INVALID WAV SEEK BOUNDARY", 0U);
         return;
     }
     was_paused = (g_audio_work.state == APP_AUDIO_STATE_PAUSED) ? 1U : 0U;
@@ -793,9 +804,10 @@ static void app_audio_seek(int8_t direction)
     }
 
     g_audio_work.data_loaded = response.data_offset;
+    g_audio_work.completed = 0U;
     if (response.end_of_file)
     {
-        app_audio_stop("END OF TRACK");
+        app_audio_stop("END OF TRACK", 1U);
         return;
     }
     g_audio_stop_after_half = 0U;
@@ -803,7 +815,7 @@ static void app_audio_seek(int8_t direction)
     end_of_file = app_audio_fill_file_half(0U);
     if (end_of_file < 0)
     {
-        app_audio_stop("SD READ FAILED AFTER SEEK");
+        app_audio_stop("SD READ FAILED AFTER SEEK", 0U);
         return;
     }
     if (end_of_file > 0)
@@ -818,7 +830,7 @@ static void app_audio_seek(int8_t direction)
         end_of_file = app_audio_fill_file_half(1U);
         if (end_of_file < 0)
         {
-            app_audio_stop("SD READ FAILED AFTER SEEK");
+            app_audio_stop("SD READ FAILED AFTER SEEK", 0U);
             return;
         }
         if (end_of_file > 0)
@@ -864,7 +876,7 @@ static void app_audio_select(int8_t direction)
     }
     restart = (g_audio_work.state == APP_AUDIO_STATE_PLAYING ||
                g_audio_work.state == APP_AUDIO_STATE_PAUSED) ? 1U : 0U;
-    app_audio_stop("TRACK SELECTED");
+    app_audio_stop("TRACK SELECTED", 0U);
     if (direction < 0)
     {
         g_audio_work.selected_track = (g_audio_work.selected_track == 0U) ?
@@ -902,7 +914,7 @@ static void app_audio_process_command(app_audio_command_t command)
     }
     else if (command == APP_AUDIO_COMMAND_STOP)
     {
-        app_audio_stop("STOPPED");
+        app_audio_stop("STOPPED", 0U);
     }
     else if (command == APP_AUDIO_COMMAND_PREVIOUS)
     {
@@ -1079,7 +1091,7 @@ void AppAudioTask(void *argument)
                               pdMS_TO_TICKS(10U));
         if ((notifications & AUDIO_DMA_NOTIFY_ERROR) != 0U)
         {
-            app_audio_stop("I2S DMA ERROR");
+            app_audio_stop("I2S DMA ERROR", 0U);
             app_logs_add(APP_LOG_LEVEL_ERROR, "AUDIO", "DMA ERROR");
         }
         else

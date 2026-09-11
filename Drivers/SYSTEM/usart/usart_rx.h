@@ -34,5 +34,7 @@ void usart_rx_reset(void);
  * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
  */
 uint32_t usart_rx_get_dropped_count(void);
+uint32_t usart_rx_get_error_count(void);
+void usart_rx_reset_stats(void);
 
 #endif

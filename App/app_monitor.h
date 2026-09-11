@@ -57,6 +57,7 @@ typedef struct
     uint32_t ch9350_discarded_frame_count;
     uint32_t ch9350_sync_error_count;
     uint32_t ch9350_uart_dropped_count;
+    uint32_t ch9350_uart_error_count;
     uint16_t queue_depth;
     uint16_t queue_high_water;
     uint16_t input_stack_watermark;

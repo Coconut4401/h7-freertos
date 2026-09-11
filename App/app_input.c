@@ -192,6 +192,20 @@ static void app_input_flush_pending(QueueHandle_t queue, TickType_t now,
     }
 }
 
+static void app_input_cancel_mouse_pending(void)
+{
+    if (g_pending_move_valid &&
+        g_pending_move.source == APP_INPUT_SOURCE_MOUSE)
+    {
+        g_pending_move_valid = 0U;
+    }
+    if (g_pending_scroll_valid &&
+        g_pending_scroll.source == APP_INPUT_SOURCE_MOUSE)
+    {
+        g_pending_scroll_valid = 0U;
+    }
+}
+
 /**
  * @brief app_input_post_event：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
  * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
@@ -373,6 +387,7 @@ void app_input_reset_stats(void)
     g_pending_move_valid = 0U; g_pending_scroll_valid = 0U;
     g_test_mode = APP_INPUT_TEST_NONE; g_test_complete = 0U;
     g_test_passed = 0U; g_test_started = 0U;
+    ch9350_reset_stats();
     taskEXIT_CRITICAL();
 }
 
@@ -555,6 +570,7 @@ void AppInputTask(void *argument)
             {
                 if (!ch9350_event.mouse_connected)
                 {
+                    app_input_cancel_mouse_pending();
                     app_mouse_disconnect();
                 }
                 event.type = ch9350_event.mouse_connected ?
@@ -570,9 +586,18 @@ void AppInputTask(void *argument)
             }
             if (ch9350_event.type == CH9350_EVENT_MOUSE_REPORT)
             {
-                app_mouse_process_report(&ch9350_event.mouse_report);
+                if (ch9350_event.report_rebaseline)
+                {
+                    app_input_cancel_mouse_pending();
+                    app_mouse_rebaseline(&ch9350_event.mouse_report);
+                }
+                else
+                {
+                    app_mouse_process_report(&ch9350_event.mouse_report);
+                }
             }
         }
+        app_mouse_poll();
         app_mouse_flush();
         app_input_scheduler_poll(context->event_queue, xTaskGetTickCount());
 

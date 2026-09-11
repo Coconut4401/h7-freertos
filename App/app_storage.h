@@ -87,7 +87,7 @@ typedef struct
     void *binary_data;
     uint32_t binary_length;
     uint32_t binary_capacity;
-    /** Byte offset relative to the start of the WAV data chunk. */
+    /** Byte offset for paged file reads or relative to the WAV data chunk. */
     uint32_t data_offset;
 } app_storage_request_t;
 
@@ -129,6 +129,8 @@ typedef struct
     uint8_t file_count;
     uint16_t content_length;
     uint32_t file_size;
+    /** Actual byte offset returned by APP_STORAGE_OP_READ. */
+    uint32_t data_offset;
     char name[APP_STORAGE_NAME_LENGTH];
     char content[APP_STORAGE_CONTENT_SIZE];
     app_storage_file_t files[APP_STORAGE_MAX_FILES];

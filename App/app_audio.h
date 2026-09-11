@@ -49,6 +49,7 @@ typedef struct
     uint8_t bits_per_sample;
     uint8_t volume_percent;
     uint8_t seek_available;
+    uint8_t completed;
     uint32_t sample_rate;
     uint32_t data_size;
     uint32_t data_loaded;

@@ -894,8 +894,17 @@ static void app_storage_read(const app_storage_request_t *request,
     if (result == FR_OK)
     {
         response->file_size = (uint32_t)f_size(&file);
-        result = f_read(&file, response->content,
-                        APP_STORAGE_CONTENT_SIZE - 1U, &transferred);
+        response->data_offset = request->data_offset;
+        if (response->data_offset > response->file_size)
+        {
+            response->data_offset = response->file_size;
+        }
+        result = f_lseek(&file, response->data_offset);
+        if (result == FR_OK)
+        {
+            result = f_read(&file, response->content,
+                            APP_STORAGE_CONTENT_SIZE - 1U, &transferred);
+        }
         f_close(&file);
     }
 

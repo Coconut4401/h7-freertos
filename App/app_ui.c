@@ -1235,14 +1235,18 @@ static uint32_t app_ui_music_progress(const app_audio_snapshot_t *snapshot)
 {
     uint32_t progress;
 
+    if (snapshot->completed)
+    {
+        return 100U;
+    }
     progress = 0U;
     if (snapshot->data_size > 0U)
     {
         progress = (uint32_t)(((uint64_t)snapshot->data_loaded * 100U) /
                               snapshot->data_size);
-        if (progress > 100U)
-        {
-            progress = 100U;
+    if (progress >= 100U)
+    {
+        progress = 99U;
         }
     }
     return progress;
@@ -3053,6 +3057,7 @@ void app_ui_show_monitor(const app_monitor_snapshot_t *snapshot)
 static void app_ui_update_monitor_system(const app_monitor_snapshot_t *snapshot)
 {
     char time_text[9];
+    uint32_t uart_faults;
     uint8_t restore_cursor;
     uint16_t cursor_x;
     uint16_t cursor_y;
@@ -3060,6 +3065,16 @@ static void app_ui_update_monitor_system(const app_monitor_snapshot_t *snapshot)
     if (snapshot == NULL)
     {
         return;
+    }
+
+    uart_faults = snapshot->ch9350_uart_dropped_count;
+    if ((0xFFFFFFFFUL - uart_faults) < snapshot->ch9350_uart_error_count)
+    {
+        uart_faults = 0xFFFFFFFFUL;
+    }
+    else
+    {
+        uart_faults += snapshot->ch9350_uart_error_count;
     }
 
     restore_cursor = g_cursor_visible;
@@ -3134,15 +3149,15 @@ static void app_ui_update_monitor_system(const app_monitor_snapshot_t *snapshot)
     app_ui_show_text(636U, 385U, 8U, 16U, 16U, "/", UI_COLOR_MUTED);
     app_ui_show_u32(648U, 385U, snapshot->ch9350_disconnect_event_count, 16U, WHITE);
 
-    app_ui_show_text(52U, 407U, 88U, 16U, 16U, "ERR F/S/U", UI_COLOR_MUTED);
+    app_ui_show_text(52U, 407U, 72U, 16U, 16U, "ERR F/S/U", UI_COLOR_MUTED);
     app_ui_show_u32(144U, 407U, snapshot->ch9350_discarded_frame_count, 16U,
                     snapshot->ch9350_discarded_frame_count ? RED : GREEN);
     app_ui_show_text(224U, 407U, 8U, 16U, 16U, "/", UI_COLOR_MUTED);
     app_ui_show_u32(236U, 407U, snapshot->ch9350_sync_error_count, 16U,
                     snapshot->ch9350_sync_error_count ? RED : GREEN);
     app_ui_show_text(316U, 407U, 8U, 16U, 16U, "/", UI_COLOR_MUTED);
-    app_ui_show_u32(328U, 407U, snapshot->ch9350_uart_dropped_count, 16U,
-                    snapshot->ch9350_uart_dropped_count ? RED : GREEN);
+    app_ui_show_u32(328U, 407U, uart_faults, 16U,
+                    uart_faults ? RED : GREEN);
     app_ui_show_text(420U, 407U, 48U, 16U, 16U, "HEALTH", UI_COLOR_MUTED);
     app_ui_show_u32(472U, 407U, snapshot->healthy_task_mask, 16U,
                     snapshot->task_timeout_mask ? RED : GREEN);

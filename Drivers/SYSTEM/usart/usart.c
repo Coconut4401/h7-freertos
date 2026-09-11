@@ -122,6 +122,7 @@ static uint8_t g_usart_rx_ring[USART_RX_RING_SIZE];
 static volatile uint16_t g_usart_rx_head;
 static volatile uint16_t g_usart_rx_tail;
 static volatile uint32_t g_usart_rx_dropped;
+static volatile uint32_t g_usart_rx_errors;
 
 /**
  * @brief usart_rx_read_byte：读取指定寄存器、缓冲区或模块状态，并把结果提供给调用方。
@@ -173,6 +174,17 @@ uint32_t usart_rx_get_dropped_count(void)
     return g_usart_rx_dropped;
 }
 
+uint32_t usart_rx_get_error_count(void)
+{
+    return g_usart_rx_errors;
+}
+
+void usart_rx_reset_stats(void)
+{
+    g_usart_rx_dropped = 0U;
+    g_usart_rx_errors = 0U;
+}
+
 /**
  * @brief USART_UX_IRQHandler：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
  * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
@@ -182,9 +194,16 @@ uint32_t usart_rx_get_dropped_count(void)
  */
 void USART_UX_IRQHandler(void)
 {
+    uint32_t status;
     uint8_t rxdata;
     uint16_t head;
     uint16_t next;
+
+    status = USART_UX->ISR;
+    if ((status & ((1U << 3) | (1U << 2) | (1U << 1) | (1U << 0))) != 0U)
+    {
+        g_usart_rx_errors++;
+    }
 
     while (USART_UX->ISR & (1U << 5))
     {
@@ -202,7 +221,7 @@ void USART_UX_IRQHandler(void)
         }
     }
 
-    USART_UX->ICR = (1U << 3) | (1U << 2) | (1U << 1);
+    USART_UX->ICR = (1U << 3) | (1U << 2) | (1U << 1) | (1U << 0);
 }
 #endif
 
@@ -243,6 +262,7 @@ void usart_init(uint32_t sclk, uint32_t baudrate)
 
     USART_UX->CR1 |= 1 << 2;
     USART_UX->CR1 |= 1 << 5;
+    USART_UX->CR3 |= 1 << 0;
     sys_nvic_init(6, 0, USART_UX_IRQn, 4);
 #endif
     USART_UX->CR1 |= 1 << 0;

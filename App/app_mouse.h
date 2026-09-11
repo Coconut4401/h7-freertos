@@ -42,6 +42,8 @@ void app_mouse_set_position(uint16_t x, uint16_t y);
  * @return 无返回值。
  */
 void app_mouse_process_report(const ch9350_mouse_report_t *report);
+/** Reset button tracking from a trusted report without applying its motion. */
+void app_mouse_rebaseline(const ch9350_mouse_report_t *report);
 /**
  * @brief app_mouse_disconnect：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
  * @details 此处为接口声明；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
@@ -49,6 +51,8 @@ void app_mouse_process_report(const ch9350_mouse_report_t *report);
  * @return 无返回值。
  */
 void app_mouse_disconnect(void);
+/** Confirm sustained button presses that have no follow-up mouse report. */
+void app_mouse_poll(void);
 /**
  * @brief app_mouse_flush：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
  * @details 此处为接口声明；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证

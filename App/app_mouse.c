@@ -15,6 +15,8 @@
 /** @name 编译期配置与硬件参数：集中定义本模块使用的常量和宏。 */
 #define APP_MOUSE_BUTTON_LEFT     0x01U
 #define APP_MOUSE_BUTTON_RIGHT    0x02U
+#define APP_MOUSE_BUTTON_MASK     (APP_MOUSE_BUTTON_LEFT | APP_MOUSE_BUTTON_RIGHT)
+#define APP_MOUSE_BUTTON_CONFIRM_MS 25U
 
 /** @brief 模块数据类型：描述本模块维护的状态、配置或数据快照。 */
 typedef struct
@@ -24,9 +26,13 @@ typedef struct
     int32_t y;
     int16_t low_remainder_x;
     int16_t low_remainder_y;
-    uint8_t previous_buttons;
+    uint8_t raw_buttons;
+    uint8_t accepted_buttons;
+    uint8_t pending_press_buttons;
     uint8_t pending_move;
-    uint8_t pending_buttons;
+    uint8_t pending_move_buttons;
+    TickType_t left_press_tick;
+    TickType_t right_press_tick;
 } app_mouse_state_t;
 
 static app_mouse_state_t g_mouse;
@@ -115,6 +121,27 @@ static void app_mouse_send(app_input_event_type_t type,
     app_input_post_event(g_mouse.event_queue, &event);
 }
 
+/* A button must survive a later report, or remain held briefly while idle. */
+static void app_mouse_confirm_press(uint8_t button)
+{
+    if ((g_mouse.pending_press_buttons & button) == 0U)
+    {
+        return;
+    }
+
+    app_mouse_flush();
+    if (button == APP_MOUSE_BUTTON_LEFT)
+    {
+        app_mouse_send(APP_INPUT_EVENT_DOWN, 0, g_mouse.raw_buttons);
+    }
+    else
+    {
+        app_mouse_send(APP_INPUT_EVENT_BACK, 0, g_mouse.raw_buttons);
+    }
+    g_mouse.pending_press_buttons &= (uint8_t)~button;
+    g_mouse.accepted_buttons |= button;
+}
+
 /**
  * @brief app_mouse_init：按依赖顺序配置硬件或模块状态，为后续访问建立有效运行环境。
  * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
@@ -129,9 +156,13 @@ void app_mouse_init(QueueHandle_t event_queue)
     g_mouse.y = (int32_t)(APP_LCD_HEIGHT / 2U);
     g_mouse.low_remainder_x = 0;
     g_mouse.low_remainder_y = 0;
-    g_mouse.previous_buttons = 0U;
+    g_mouse.raw_buttons = 0U;
+    g_mouse.accepted_buttons = 0U;
+    g_mouse.pending_press_buttons = 0U;
     g_mouse.pending_move = 0U;
-    g_mouse.pending_buttons = 0U;
+    g_mouse.pending_move_buttons = 0U;
+    g_mouse.left_press_tick = 0U;
+    g_mouse.right_press_tick = 0U;
 }
 
 /**
@@ -158,15 +189,19 @@ void app_mouse_set_position(uint16_t x, uint16_t y)
  */
 void app_mouse_process_report(const ch9350_mouse_report_t *report)
 {
+    uint8_t buttons;
     uint8_t changed_buttons;
     int16_t delta_x;
     int16_t delta_y;
+    TickType_t now;
 
     if (report == NULL || g_mouse.event_queue == NULL)
     {
         return;
     }
 
+    buttons = report->buttons & APP_MOUSE_BUTTON_MASK;
+    now = xTaskGetTickCount();
     delta_x = app_mouse_scale_delta(report->delta_x,
                                     &g_mouse.low_remainder_x);
     delta_y = app_mouse_scale_delta(report->delta_y,
@@ -177,33 +212,92 @@ void app_mouse_process_report(const ch9350_mouse_report_t *report)
         g_mouse.y += delta_y;
         app_mouse_limit_position();
         g_mouse.pending_move = 1U;
-        g_mouse.pending_buttons = report->buttons;
+        g_mouse.pending_move_buttons = buttons;
     }
 
-    changed_buttons = (uint8_t)(report->buttons ^ g_mouse.previous_buttons);
-    if (changed_buttons & APP_MOUSE_BUTTON_LEFT)
+    changed_buttons = (uint8_t)(buttons ^ g_mouse.raw_buttons);
+    if ((changed_buttons & APP_MOUSE_BUTTON_LEFT) != 0U)
     {
-        app_mouse_flush();
-        app_mouse_send((report->buttons & APP_MOUSE_BUTTON_LEFT) ?
-                       APP_INPUT_EVENT_DOWN : APP_INPUT_EVENT_UP,
-                       0, report->buttons);
+        if ((buttons & APP_MOUSE_BUTTON_LEFT) != 0U)
+        {
+            g_mouse.pending_press_buttons |= APP_MOUSE_BUTTON_LEFT;
+            g_mouse.left_press_tick = now;
+        }
+        else
+        {
+            g_mouse.pending_press_buttons &=
+                (uint8_t)~APP_MOUSE_BUTTON_LEFT;
+            if ((g_mouse.accepted_buttons & APP_MOUSE_BUTTON_LEFT) != 0U)
+            {
+                app_mouse_flush();
+                app_mouse_send(APP_INPUT_EVENT_UP, 0, buttons);
+                g_mouse.accepted_buttons &=
+                    (uint8_t)~APP_MOUSE_BUTTON_LEFT;
+            }
+        }
     }
 
-    if ((changed_buttons & APP_MOUSE_BUTTON_RIGHT) &&
-        (report->buttons & APP_MOUSE_BUTTON_RIGHT))
+    if ((changed_buttons & APP_MOUSE_BUTTON_RIGHT) != 0U)
     {
-        app_mouse_flush();
-        app_mouse_send(APP_INPUT_EVENT_BACK, 0, report->buttons);
+        if ((buttons & APP_MOUSE_BUTTON_RIGHT) != 0U)
+        {
+            g_mouse.pending_press_buttons |= APP_MOUSE_BUTTON_RIGHT;
+            g_mouse.right_press_tick = now;
+        }
+        else
+        {
+            g_mouse.pending_press_buttons &=
+                (uint8_t)~APP_MOUSE_BUTTON_RIGHT;
+            g_mouse.accepted_buttons &= (uint8_t)~APP_MOUSE_BUTTON_RIGHT;
+        }
+    }
+
+    g_mouse.raw_buttons = buttons;
+
+    if ((g_mouse.pending_press_buttons & APP_MOUSE_BUTTON_LEFT) != 0U &&
+        (buttons & APP_MOUSE_BUTTON_LEFT) != 0U &&
+        (changed_buttons & APP_MOUSE_BUTTON_LEFT) == 0U)
+    {
+        app_mouse_confirm_press(APP_MOUSE_BUTTON_LEFT);
+    }
+    if ((g_mouse.pending_press_buttons & APP_MOUSE_BUTTON_RIGHT) != 0U &&
+        (buttons & APP_MOUSE_BUTTON_RIGHT) != 0U &&
+        (changed_buttons & APP_MOUSE_BUTTON_RIGHT) == 0U)
+    {
+        app_mouse_confirm_press(APP_MOUSE_BUTTON_RIGHT);
     }
 
     if (report->wheel != 0)
     {
         app_mouse_flush();
         app_mouse_send(APP_INPUT_EVENT_SCROLL,
-                       report->wheel, report->buttons);
+                       report->wheel, buttons);
+    }
+}
+
+void app_mouse_rebaseline(const ch9350_mouse_report_t *report)
+{
+    uint8_t buttons;
+
+    if (report == NULL || g_mouse.event_queue == NULL)
+    {
+        return;
     }
 
-    g_mouse.previous_buttons = report->buttons;
+    buttons = report->buttons & APP_MOUSE_BUTTON_MASK;
+    g_mouse.low_remainder_x = 0;
+    g_mouse.low_remainder_y = 0;
+    g_mouse.pending_press_buttons = 0U;
+    g_mouse.pending_move = 0U;
+    g_mouse.pending_move_buttons = 0U;
+    g_mouse.left_press_tick = 0U;
+    g_mouse.right_press_tick = 0U;
+    if ((g_mouse.accepted_buttons & APP_MOUSE_BUTTON_LEFT) != 0U)
+    {
+        app_mouse_send(APP_INPUT_EVENT_UP, 0, 0U);
+    }
+    g_mouse.raw_buttons = buttons;
+    g_mouse.accepted_buttons = 0U;
 }
 
 /**
@@ -214,16 +308,40 @@ void app_mouse_process_report(const ch9350_mouse_report_t *report)
  */
 void app_mouse_disconnect(void)
 {
-    app_mouse_flush();
-    if (g_mouse.previous_buttons & APP_MOUSE_BUTTON_LEFT)
+    g_mouse.pending_move = 0U;
+    g_mouse.pending_move_buttons = 0U;
+    if (g_mouse.accepted_buttons & APP_MOUSE_BUTTON_LEFT)
     {
         app_mouse_send(APP_INPUT_EVENT_UP, 0, 0U);
     }
     g_mouse.low_remainder_x = 0;
     g_mouse.low_remainder_y = 0;
-    g_mouse.previous_buttons = 0U;
-    g_mouse.pending_move = 0U;
-    g_mouse.pending_buttons = 0U;
+    g_mouse.raw_buttons = 0U;
+    g_mouse.accepted_buttons = 0U;
+    g_mouse.pending_press_buttons = 0U;
+    g_mouse.left_press_tick = 0U;
+    g_mouse.right_press_tick = 0U;
+}
+
+void app_mouse_poll(void)
+{
+    TickType_t now;
+
+    now = xTaskGetTickCount();
+    if ((g_mouse.pending_press_buttons & APP_MOUSE_BUTTON_LEFT) != 0U &&
+        (g_mouse.raw_buttons & APP_MOUSE_BUTTON_LEFT) != 0U &&
+        (TickType_t)(now - g_mouse.left_press_tick) >=
+        pdMS_TO_TICKS(APP_MOUSE_BUTTON_CONFIRM_MS))
+    {
+        app_mouse_confirm_press(APP_MOUSE_BUTTON_LEFT);
+    }
+    if ((g_mouse.pending_press_buttons & APP_MOUSE_BUTTON_RIGHT) != 0U &&
+        (g_mouse.raw_buttons & APP_MOUSE_BUTTON_RIGHT) != 0U &&
+        (TickType_t)(now - g_mouse.right_press_tick) >=
+        pdMS_TO_TICKS(APP_MOUSE_BUTTON_CONFIRM_MS))
+    {
+        app_mouse_confirm_press(APP_MOUSE_BUTTON_RIGHT);
+    }
 }
 
 /**
@@ -238,6 +356,6 @@ void app_mouse_flush(void)
     {
         g_mouse.pending_move = 0U;
         app_mouse_send(APP_INPUT_EVENT_MOVE, 0,
-                       g_mouse.pending_buttons);
+                       g_mouse.pending_move_buttons);
     }
 }

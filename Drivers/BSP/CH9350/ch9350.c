@@ -11,6 +11,8 @@
 #include <stddef.h>
 
 #include "./SYSTEM/usart/usart.h"
+#include "FreeRTOS.h"
+#include "task.h"
 
 /** @name 编译期配置与硬件参数：集中定义本模块使用的常量和宏。 */
 #define CH9350_HEADER_0             0x57U
@@ -22,9 +24,10 @@
 #define CH9350_OPCODE_DISCONNECT    0x86U
 #define CH9350_OPCODE_VERSION       0x87U
 #define CH9350_OPCODE_TIMEOUT       0x89U
-#define CH9350_MAX_FRAME_SIZE       11U
 #define CH9350_STATE_REPORT_MASK    0x0FU
-#define CH9350_REPORT_ID_MOUSE_REL  0x02U
+#define CH9350_STATE_MOUSE_REPORT   0x02U
+#define CH9350_MAX_FRAME_SIZE       11U
+#define CH9350_DISCONNECT_DEBOUNCE_MS  1000U
 
 /** @brief 模块数据类型：描述本模块维护的状态、配置或数据快照。 */
 typedef struct
@@ -32,6 +35,11 @@ typedef struct
     uint8_t frame[CH9350_MAX_FRAME_SIZE];
     uint8_t length;
     uint8_t expected_length;
+    uint8_t disconnect_pending;
+    uint8_t report_rebaseline_pending;
+    TickType_t disconnect_started;
+    uint32_t observed_uart_dropped;
+    uint32_t observed_uart_errors;
     ch9350_stats_t stats;
 } ch9350_parser_t;
 
@@ -64,23 +72,6 @@ static uint8_t ch9350_set_mouse_connected(uint8_t connected)
         g_ch9350.stats.disconnect_event_count++;
     }
     return 1U;
-}
-
-/**
- * @brief ch9350_toggle_mouse_connected：完成该接口负责的模块操作，并保持相关硬件与软件状态一致。
- * @details 此处为接口实现；执行顺序沿用模块既有设计。涉及共享状态时，调用方需保证
- *          初始化已经完成，并避免与中断或其他任务产生未受控的并发访问。
- * @return 返回处理结果、状态码或查询值；调用方应按接口语义判断成功与失败。
- */
-static uint8_t ch9350_toggle_mouse_connected(void)
-{
-    if (!g_ch9350.stats.connection_known)
-    {
-        return ch9350_set_mouse_connected(1U);
-    }
-
-    return ch9350_set_mouse_connected(
-        g_ch9350.stats.mouse_connected ? 0U : 1U);
 }
 
 /**
@@ -145,6 +136,7 @@ static void ch9350_restart_sync(uint8_t byte)
 {
     g_ch9350.length = 0U;
     g_ch9350.expected_length = 0U;
+    g_ch9350.report_rebaseline_pending = 1U;
     if (byte == CH9350_HEADER_0)
     {
         g_ch9350.frame[0] = byte;
@@ -163,7 +155,6 @@ static void ch9350_restart_sync(uint8_t byte)
 static uint8_t ch9350_parse_byte(uint8_t byte, ch9350_event_t *event)
 {
     uint8_t expected;
-    uint8_t report_id;
 
     if (g_ch9350.length == 0U)
     {
@@ -221,8 +212,14 @@ static uint8_t ch9350_parse_byte(uint8_t byte, ch9350_event_t *event)
         event->mouse_report.delta_x = (int8_t)g_ch9350.frame[4];
         event->mouse_report.delta_y = (int8_t)g_ch9350.frame[5];
         event->mouse_report.wheel = (int8_t)g_ch9350.frame[6];
+        event->report_rebaseline = g_ch9350.report_rebaseline_pending;
+        g_ch9350.report_rebaseline_pending = 0U;
+        if (g_ch9350.disconnect_pending)
+        {
+            g_ch9350.disconnect_pending = 0U;
+        }
         event->connection_changed = ch9350_set_mouse_connected(1U);
-        event->mouse_connected = 1U;
+        event->mouse_connected = g_ch9350.stats.mouse_connected;
         g_ch9350.stats.mouse_report_count++;
         g_ch9350.length = 0U;
         g_ch9350.expected_length = 0U;
@@ -234,20 +231,20 @@ static uint8_t ch9350_parse_byte(uint8_t byte, ch9350_event_t *event)
         g_ch9350.stats.state_frame_count++;
         g_ch9350.stats.last_state_value = g_ch9350.frame[3];
 
-        report_id = g_ch9350.frame[3] & CH9350_STATE_REPORT_MASK;
+        if ((g_ch9350.frame[3] & CH9350_STATE_REPORT_MASK) ==
+                CH9350_STATE_MOUSE_REPORT &&
+            g_ch9350.stats.connection_known &&
+            g_ch9350.stats.mouse_connected &&
+            !g_ch9350.disconnect_pending)
+        {
+            g_ch9350.disconnect_pending = 1U;
+            g_ch9350.disconnect_started = xTaskGetTickCount();
+        }
+
         g_ch9350.length = 0U;
         g_ch9350.expected_length = 0U;
         ch9350_send_state_response();
-
-        if ((report_id & CH9350_REPORT_ID_MOUSE_REL) == 0U)
-        {
-            return 0U;
-        }
-
-        event->type = CH9350_EVENT_CONNECTION;
-        event->connection_changed = ch9350_toggle_mouse_connected();
-        event->mouse_connected = g_ch9350.stats.mouse_connected;
-        return event->connection_changed;
+        return 0U;
     }
 
     if (g_ch9350.frame[2] == CH9350_OPCODE_DISCONNECT)
@@ -255,10 +252,14 @@ static uint8_t ch9350_parse_byte(uint8_t byte, ch9350_event_t *event)
         g_ch9350.stats.state_frame_count++;
         g_ch9350.length = 0U;
         g_ch9350.expected_length = 0U;
-        event->type = CH9350_EVENT_CONNECTION;
-        event->connection_changed = ch9350_set_mouse_connected(0U);
-        event->mouse_connected = 0U;
-        return event->connection_changed;
+        if (g_ch9350.stats.connection_known &&
+            g_ch9350.stats.mouse_connected &&
+            !g_ch9350.disconnect_pending)
+        {
+            g_ch9350.disconnect_pending = 1U;
+            g_ch9350.disconnect_started = xTaskGetTickCount();
+        }
+        return 0U;
     }
 
     g_ch9350.stats.discarded_frame_count++;
@@ -283,6 +284,9 @@ void ch9350_init(void)
     }
     g_ch9350.length = 0U;
     g_ch9350.expected_length = 0U;
+    g_ch9350.disconnect_pending = 0U;
+    g_ch9350.report_rebaseline_pending = 0U;
+    g_ch9350.disconnect_started = 0U;
     g_ch9350.stats.mouse_report_count = 0U;
     g_ch9350.stats.state_frame_count = 0U;
     g_ch9350.stats.connect_event_count = 0U;
@@ -290,10 +294,13 @@ void ch9350_init(void)
     g_ch9350.stats.discarded_frame_count = 0U;
     g_ch9350.stats.sync_error_count = 0U;
     g_ch9350.stats.uart_dropped_count = 0U;
+    g_ch9350.stats.uart_error_count = 0U;
     g_ch9350.stats.connection_known = 0U;
     g_ch9350.stats.mouse_connected = 0U;
     g_ch9350.stats.last_state_value = 0U;
     usart_rx_reset();
+    g_ch9350.observed_uart_dropped = usart_rx_get_dropped_count();
+    g_ch9350.observed_uart_errors = usart_rx_get_error_count();
     ch9350_send_state_response();
 }
 
@@ -306,6 +313,8 @@ void ch9350_init(void)
  */
 uint8_t ch9350_read_event(ch9350_event_t *event)
 {
+    uint32_t uart_dropped;
+    uint32_t uart_errors;
     uint8_t byte;
 
     if (event == NULL)
@@ -314,12 +323,34 @@ uint8_t ch9350_read_event(ch9350_event_t *event)
     }
 
     event->connection_changed = 0U;
+    event->report_rebaseline = 0U;
+    uart_dropped = usart_rx_get_dropped_count();
+    uart_errors = usart_rx_get_error_count();
+    if (uart_dropped != g_ch9350.observed_uart_dropped ||
+        uart_errors != g_ch9350.observed_uart_errors)
+    {
+        g_ch9350.observed_uart_dropped = uart_dropped;
+        g_ch9350.observed_uart_errors = uart_errors;
+        g_ch9350.length = 0U;
+        g_ch9350.expected_length = 0U;
+        g_ch9350.report_rebaseline_pending = 1U;
+    }
     while (usart_rx_read_byte(&byte))
     {
         if (ch9350_parse_byte(byte, event))
         {
             return 1U;
         }
+    }
+    if (g_ch9350.disconnect_pending &&
+        (TickType_t)(xTaskGetTickCount() - g_ch9350.disconnect_started) >=
+            pdMS_TO_TICKS(CH9350_DISCONNECT_DEBOUNCE_MS))
+    {
+        g_ch9350.disconnect_pending = 0U;
+        event->type = CH9350_EVENT_CONNECTION;
+        event->connection_changed = ch9350_set_mouse_connected(0U);
+        event->mouse_connected = 0U;
+        return event->connection_changed;
     }
     return 0U;
 }
@@ -337,5 +368,19 @@ void ch9350_get_stats(ch9350_stats_t *stats)
     {
         *stats = g_ch9350.stats;
         stats->uart_dropped_count = usart_rx_get_dropped_count();
+        stats->uart_error_count = usart_rx_get_error_count();
     }
+}
+
+void ch9350_reset_stats(void)
+{
+    g_ch9350.stats.mouse_report_count = 0U;
+    g_ch9350.stats.state_frame_count = 0U;
+    g_ch9350.stats.connect_event_count = 0U;
+    g_ch9350.stats.disconnect_event_count = 0U;
+    g_ch9350.stats.discarded_frame_count = 0U;
+    g_ch9350.stats.sync_error_count = 0U;
+    usart_rx_reset_stats();
+    g_ch9350.observed_uart_dropped = 0U;
+    g_ch9350.observed_uart_errors = 0U;
 }

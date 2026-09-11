@@ -140,6 +140,7 @@ void AppMonitorTask(void *argument)
             ch9350_stats.discarded_frame_count;
         snapshot.ch9350_sync_error_count = ch9350_stats.sync_error_count;
         snapshot.ch9350_uart_dropped_count = ch9350_stats.uart_dropped_count;
+        snapshot.ch9350_uart_error_count = ch9350_stats.uart_error_count;
         snapshot.queue_depth = input_stats.queue_depth;
         snapshot.queue_high_water = input_stats.queue_high_water;
         snapshot.input_stack_watermark =
@@ -210,7 +211,7 @@ void AppMonitorTask(void *argument)
 
         if (app_settings_get_serial_output_enabled())
         {
-            printf("RTOS tick=%lu heap=%u queue=%u/%u raw=%lu sent=%lu merge=%lu drop=%lu drop/s=%lu lat=%u/%u mode=%u stack(I/G/M)=%u/%u/%u CH9350=%s report=%lu state=%lu last=0x%02X link=%lu/%lu err=%lu/%lu/%lu\r\n",
+            printf("RTOS tick=%lu heap=%u queue=%u/%u raw=%lu sent=%lu merge=%lu drop=%lu drop/s=%lu lat=%u/%u mode=%u stack(I/G/M)=%u/%u/%u CH9350=%s report=%lu state=%lu last=0x%02X link=%lu/%lu err=%lu/%lu/%lu/%lu\r\n",
                    (unsigned long)xTaskGetTickCount(),
                    (unsigned int)snapshot.free_heap_bytes,
                    (unsigned int)queue_depth,
@@ -237,7 +238,8 @@ void AppMonitorTask(void *argument)
                    (unsigned long)ch9350_stats.disconnect_event_count,
                    (unsigned long)ch9350_stats.discarded_frame_count,
                    (unsigned long)ch9350_stats.sync_error_count,
-                   (unsigned long)ch9350_stats.uart_dropped_count);
+                   (unsigned long)ch9350_stats.uart_dropped_count,
+                   (unsigned long)ch9350_stats.uart_error_count);
         }
 
         vTaskDelayUntil(&last_wake, pdMS_TO_TICKS(500U));
